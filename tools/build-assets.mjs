@@ -174,7 +174,7 @@ const BADGES = {
     tested: { label: "TESTED", value: "LINUX · MACOS · WINDOWS", tone: "success", alt: "Tested on Linux, macOS, and Windows" },
     license: { label: "LICENSE", value: "MIT", tone: "primary", alt: "License: MIT" },
     dependencies: { label: "DEPENDENCIES", value: "ZERO", tone: "success", alt: "Zero dependencies" },
-    node: { label: "NODE", value: "20+", tone: "warning", alt: "Node 20 or later" },
+    node: { label: "NODE", value: "22+", tone: "warning", alt: "Node 22 or later" },
     skill: { label: "AGENT SKILL", value: "AGENTSKILLS.IO", tone: "primary", alt: "Agent Skill format (agentskills.io)" },
 };
 

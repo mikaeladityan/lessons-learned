@@ -4,7 +4,7 @@ Thanks for helping. Keep changes small and focused.
 
 ## Setup
 
-You need Node 20 or later. There is nothing to install.
+You need Node 22 or later. There is nothing to install.
 
 ```bash
 npm test         # all tests

@@ -19,7 +19,7 @@ All notable changes to this project are documented here. The format follows
 - `references/fold.md`: the fold procedure, owner-file guidance, and the approval table.
 - `references/agent-files.md`: which agent reads which instruction file, the trigger block, and
   removal steps.
-- `scripts/lessons.mjs`: a zero-dependency Node (≥ 20) CLI.
+- `scripts/lessons.mjs`: a zero-dependency Node (≥ 22) CLI.
   - Commands: `status`, `init`, `new`, `find`, `check`, `audit`.
   - Lessons folder resolution: `--dir`, then the repo copy's own folder, then the trigger block,
     then `docs/lessons`.
@@ -71,6 +71,8 @@ All notable changes to this project are documented here. The format follows
   The first now skips writing the file on Windows. The symlink tests are skipped where the OS cannot create a
   file symlink. Folder symlinks use junctions, which work on Windows without extra rights.
 - CI uses `actions/checkout@v5` and `actions/setup-node@v5`, which run on Node 24.
+- The supported Node version is now 22 or later, the versions CI tests. Node 20 reached end of life
+  on 2026-04-30, and the `skills` CLI already needs Node 22.20.
 - `init`, `new`, and `fold` refuse to write when a file in the lessons folder is a symlink to a
   place outside the repo. Areas refuse `|` and line breaks.
 - The repo copy finds its root through the `dir` stored in `config.json` first, so a project inside

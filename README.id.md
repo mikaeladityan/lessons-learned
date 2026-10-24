@@ -8,7 +8,7 @@ Agent Skill yang mengubah setiap kesalahan agent jadi aturan singkat di repo And
 Claude Code, Codex, Cursor, dan agent lain membacanya sebelum bekerja.
 
 <p>
-<a href="https://github.com/mikaeladityan/lessons-learned/actions/workflows/test.yml"><img src="assets/badges/tested.svg" alt="Tested on Linux, macOS, and Windows" height="28"></a> <a href="LICENSE"><img src="assets/badges/license.svg" alt="License: MIT" height="28"></a> <a href="skills/lessons-learned/scripts/lessons.mjs"><img src="assets/badges/dependencies.svg" alt="Zero dependencies" height="28"></a> <a href="package.json"><img src="assets/badges/node.svg" alt="Node 20 or later" height="28"></a> <a href="https://agentskills.io"><img src="assets/badges/skill.svg" alt="Agent Skill format (agentskills.io)" height="28"></a>
+<a href="https://github.com/mikaeladityan/lessons-learned/actions/workflows/test.yml"><img src="assets/badges/tested.svg" alt="Tested on Linux, macOS, and Windows" height="28"></a> <a href="LICENSE"><img src="assets/badges/license.svg" alt="License: MIT" height="28"></a> <a href="skills/lessons-learned/scripts/lessons.mjs"><img src="assets/badges/dependencies.svg" alt="Zero dependencies" height="28"></a> <a href="package.json"><img src="assets/badges/node.svg" alt="Node 22 or later" height="28"></a> <a href="https://agentskills.io"><img src="assets/badges/skill.svg" alt="Agent Skill format (agentskills.io)" height="28"></a>
 </p>
 
 [English](README.md) · **Bahasa Indonesia**
@@ -228,7 +228,7 @@ node docs/lessons/lessons.mjs check && git commit -m "fix: ..."
 | Gemini CLI | `GEMINI.md` |
 | Cursor | `AGENTS.md` |
 
-Bisa dipakai dengan bahasa dan framework apa pun. Script-nya butuh Node 20 atau lebih baru. CLI
+Bisa dipakai dengan bahasa dan framework apa pun. Script-nya butuh Node 22 atau lebih baru. CLI
 `skills` butuh Node 22.20 atau lebih baru.
 
 ## FAQ

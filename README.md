@@ -8,7 +8,7 @@ An Agent Skill that turns each agent mistake into a short rule in your repo.<br>
 Claude Code, Codex, Cursor, and every other agent read it before they work.
 
 <p>
-<a href="https://github.com/mikaeladityan/lessons-learned/actions/workflows/test.yml"><img src="assets/badges/tested.svg" alt="Tested on Linux, macOS, and Windows" height="28"></a> <a href="LICENSE"><img src="assets/badges/license.svg" alt="License: MIT" height="28"></a> <a href="skills/lessons-learned/scripts/lessons.mjs"><img src="assets/badges/dependencies.svg" alt="Zero dependencies" height="28"></a> <a href="package.json"><img src="assets/badges/node.svg" alt="Node 20 or later" height="28"></a> <a href="https://agentskills.io"><img src="assets/badges/skill.svg" alt="Agent Skill format (agentskills.io)" height="28"></a>
+<a href="https://github.com/mikaeladityan/lessons-learned/actions/workflows/test.yml"><img src="assets/badges/tested.svg" alt="Tested on Linux, macOS, and Windows" height="28"></a> <a href="LICENSE"><img src="assets/badges/license.svg" alt="License: MIT" height="28"></a> <a href="skills/lessons-learned/scripts/lessons.mjs"><img src="assets/badges/dependencies.svg" alt="Zero dependencies" height="28"></a> <a href="package.json"><img src="assets/badges/node.svg" alt="Node 22 or later" height="28"></a> <a href="https://agentskills.io"><img src="assets/badges/skill.svg" alt="Agent Skill format (agentskills.io)" height="28"></a>
 </p>
 
 **English** · [Bahasa Indonesia](README.id.md)
@@ -223,7 +223,7 @@ node docs/lessons/lessons.mjs check && git commit -m "fix: ..."
 | Gemini CLI | `GEMINI.md` |
 | Cursor | `AGENTS.md` |
 
-It works with any language and any framework. The script needs Node 20 or later. The `skills` CLI
+It works with any language and any framework. The script needs Node 22 or later. The `skills` CLI
 needs Node 22.20 or later.
 
 ## FAQ

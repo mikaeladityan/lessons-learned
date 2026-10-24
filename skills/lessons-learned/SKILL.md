@@ -241,5 +241,5 @@ In this skill:
 - `references/fold.md`: the full fold procedure and owner-file guidance.
 - `references/agent-files.md`: which agent reads which instruction file, the block text, and how
   to remove it.
-- `scripts/lessons.mjs`: commands `status`, `init`, `new`, `find`, `check`, `audit`, `fold`. Node ≥ 20,
+- `scripts/lessons.mjs`: commands `status`, `init`, `new`, `find`, `check`, `audit`, `fold`. Node ≥ 22,
   zero dependencies.

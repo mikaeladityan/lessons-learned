@@ -5,7 +5,7 @@
   "description": "An Agent Skill that turns AI agent mistakes into lessons every agent reads before it works again.",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "test": "node --test skills/lessons-learned/scripts/lessons.test.mjs tests/repo.test.mjs",
