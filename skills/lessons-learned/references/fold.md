@@ -6,8 +6,17 @@ each rule there and removes the lesson file, so the lessons folder stays short e
 
 ## When
 
-- `lessons.mjs check` warns: `N active lessons (fold threshold T)`.
+- `lessons.mjs status` or `check` prints `fold: due (N active, threshold T, mode M)`.
 - Or the user asks.
+
+## Mode
+
+`config.json` holds the mode. The user chooses it at setup (`init --fold ask|auto`).
+
+| Mode | What you do |
+|---|---|
+| `ask` (default) | Build the fold table. Show it. Stop until the user approves. |
+| `auto` | Build the fold table. Show it. Apply it in the same turn. Keep a lesson when its owner is unclear. |
 
 Fold in its own change (recommended branch: `docs/lessons-fold-YYYY-MM-DD`), never inside a
 feature or bugfix change. A fold edits rules that every later task obeys, so it deserves its own
@@ -43,24 +52,24 @@ review.
    - Write the rule as a command line of the owner file, with a short reason. The line must stand
      alone.
    - Compare the new line with the lesson rule word by word, and keep every condition. "In the
-     same commit", "before the first edit", and "only on CI" are easy to lose, and a rule without
-     its condition is a different rule.
+     same commit", "before the first edit", and "only on CI" are easy to lose. A rule without its
+     condition is a different rule.
    - Count the words: at most 20 for an instruction.
-5. **Show the fold table to the user, and stop for approval.** Delete nothing before approval.
+5. **Show the fold table to the user.** In mode `ask`, stop for approval. Delete nothing before
+   approval. In mode `auto`, go on to step 6.
 
    | Lesson | Decision | Owner file → section | New or changed line |
    |---|---|---|---|
    | L004 | Fold | `AGENTS.md` → Shell | Quote the heredoc delimiter when the body holds backticks or `$`. (L004) |
    | L007 | Keep | — | Its review is still open. |
 
-6. **After approval, for each folded lesson:**
+6. **For each folded lesson:**
    1. Write the line into the owner file. End it with the lesson id, for example `(L004)`.
-   2. Delete the entry file: one `git rm <lessons folder>/L0NN-<slug>.md` per file. Never use a
-      recursive delete.
-   3. Set its index `Status` to `folded → <owner file>`, with a repo-relative path. Keep the row.
-7. **Run `lessons.mjs check && git commit ...`.**
-   - `check` fails on a folded row whose entry file still exists.
-   - It also fails when the owner file is missing or does not cite the id.
+   2. Run `lessons.mjs fold L004 --to AGENTS.md`. It checks that the owner file cites the id. Then
+      it deletes the entry file and sets the index row to `folded → AGENTS.md`. It refuses, and
+      changes nothing, when the owner file does not cite the id.
+7. **Run `lessons.mjs check && git commit ...`.** `fold` already ran the check once. Run it again
+   with the commit, so a later edit cannot slip through.
 8. **Optional:** if your team uses a second reviewer (a human, or another model), send the fold
    change to it. It changes rules that every later task follows.
 

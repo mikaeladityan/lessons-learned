@@ -23,5 +23,6 @@
     ".claude",
     "docs"
   ],
-  "dir": "docs/lessons"
+  "dir": "docs/lessons",
+  "fold": "ask"
 }

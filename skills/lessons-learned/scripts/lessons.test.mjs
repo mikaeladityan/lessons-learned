@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
@@ -20,6 +20,7 @@ import {
     dirFromBlock,
     findRoot,
     findRows,
+    foldLesson,
     initLessons,
     nextId,
     readConfig,
@@ -964,4 +965,458 @@ test("the repo copy finds its root without .git, from any working directory", ()
         rmSync(root, { recursive: true, force: true });
         rmSync(elsewhere, { recursive: true, force: true });
     }
+});
+
+// ---- Codex review fixes ----
+
+test("ids go past L999 and new never overwrites a lesson file", () => {
+    writeFileSync(join(dir, "README.md"), INDEX_HEAD + "| L999 | 2026-10-20 | shell | X. | x | retired |\n");
+    writeFileSync(join(dir, "L999-x.md"), "x\n");
+
+    assert.equal(createLesson(dir, { ...input, slug: "sample" }), "L1000");
+    assert.deepEqual(readIndexRows(dir).map((r) => r.id), ["L999", "L1000"]);
+    assert.equal(nextId(["L999", "L1000"]), "L1001");
+    writeFileSync(join(dir, "L1000-sample.md"), "USER CONTENT\n");
+    writeFileSync(join(dir, "README.md"), INDEX_HEAD);
+    // The id comes from the files too, so the same slug gets the next id and the user file stays.
+    assert.equal(createLesson(dir, { ...input, slug: "sample" }), "L1001");
+    assert.equal(readFileSync(join(dir, "L1000-sample.md"), "utf8"), "USER CONTENT\n");
+});
+
+test("upsertBlock keeps trailing spaces and blank lines of the user text", () => {
+    const text = "# Rules\nKeep this Markdown break.  \n\n\n";
+
+    const out = upsertBlock(text, BLOCK, "AGENTS.md");
+
+    assert.ok(out.startsWith(text));
+    assert.equal(upsertBlock(out, BLOCK, "AGENTS.md"), out);
+    assert.equal(upsertBlock("no newline", BLOCK, "AGENTS.md"), `no newline\n\n${BLOCK}\n`);
+});
+
+test("index rows without spaces around the cells are read, and a broken folded row fails the check", () => {
+    writeFileSync(join(dir, "README.md"), INDEX_HEAD + "|L001|2026-10-23|shell|Quote inputs.|sample|folded → missing.md|\n");
+
+    assert.deepEqual(readIndexRows(dir).map((r) => r.id), ["L001"]);
+    assert.ok(checkLessons(dir, { root: dir }).errors.join("\n").includes("L001: folded destination missing.md does not exist"));
+});
+
+test("a row that looks like a lesson but does not parse fails the check", () => {
+    writeFileSync(join(dir, "README.md"), INDEX_HEAD + "| L001 | 2026-10-23 | shell | rule |\n");
+
+    assert.ok(checkLessons(dir, { root: dir }).errors.join("\n").includes("index row does not have 6 cells"));
+});
+
+test("a section without a blank line after its heading still counts", () => {
+    createLesson(dir, input);
+    const file = join(dir, "L001-quote-heredocs.md");
+    writeFileSync(file, readFileSync(file, "utf8").replaceAll("TODO", "Done").replace(/\n## (\w+)\n\n/g, "\n## $1\n"));
+
+    assert.deepEqual(checkLessons(dir).errors, []);
+});
+
+// ---- Security review fixes ----
+
+test("resolveDir ignores a trigger block that points outside the repo", () => {
+    const scriptDir = join(dir, "skill", "scripts");
+    mkdirSync(scriptDir, { recursive: true });
+    for (const bad of ["../../etc", "/etc", "."]) {
+        writeFileSync(join(dir, "AGENTS.md"), `<!-- lessons-learned:start -->\n\`node ${bad}/lessons.mjs check\`\n<!-- lessons-learned:end -->\n`);
+        assert.equal(resolveDir({ root: dir, scriptDir }), join(dir, "docs", "lessons"), bad);
+    }
+});
+
+test("initLessons writes only to the known instruction files", () => {
+    withRepo((root) => {
+        for (const bad of ["../evil.md", "/tmp/evil.md", "src/AGENTS.md", "README.md"]) {
+            assert.throws(
+                () => initLessons(initOpts(root, join(root, "docs", "lessons"), { targets: [bad] })),
+                /target must be one of AGENTS\.md, CLAUDE\.md, GEMINI\.md/,
+                bad,
+            );
+        }
+        assert.equal(existsSync(join(root, "docs")), false);
+    });
+});
+
+test("readConfig refuses targets outside the instruction files and citation roots outside the repo", () => {
+    for (const [json, error] of [
+        ['{"targets":["../x.md"]}', /config\.json: targets must be AGENTS\.md, CLAUDE\.md, or GEMINI\.md/],
+        ['{"citationRoots":["../../"]}', /config\.json: citationRoots must be paths inside the repo/],
+        ['{"citationRoots":["/etc"]}', /config\.json: citationRoots must be paths inside the repo/],
+    ]) {
+        writeFileSync(join(dir, "config.json"), json);
+        assert.throws(() => readConfig(dir), error, json);
+    }
+});
+
+test("a folded destination outside the repo fails the check without reading it", () => {
+    writeFileSync(join(dir, "README.md"), INDEX_HEAD + "| L001 | 2026-10-20 | shell | X. | x | folded → ../../etc/hosts |\n");
+
+    assert.ok(checkLessons(dir, { root: dir }).errors.join("\n").includes("L001: folded destination must be inside the repo"));
+});
+
+// ---- Codex review round 2 fixes ----
+
+test("initLessons refuses a target that is a symlink to a file outside the repo", () => {
+    withRepo((root) => {
+        const outside = mkdtempSync(join(tmpdir(), "outside-"));
+        try {
+            writeFileSync(join(outside, "rules.md"), "# Shared\n");
+            symlinkSync(join(outside, "rules.md"), join(root, "AGENTS.md"));
+
+            assert.throws(() => initLessons(initOpts(root, join(root, "docs", "lessons"))), /AGENTS\.md resolves outside the repo/);
+            assert.equal(readFileSync(join(outside, "rules.md"), "utf8"), "# Shared\n");
+            assert.equal(existsSync(join(root, "docs")), false);
+        } finally {
+            rmSync(outside, { recursive: true, force: true });
+        }
+    });
+});
+
+test("initLessons refuses a lessons folder that is a symlink to a folder outside the repo", () => {
+    withRepo((root) => {
+        const outside = mkdtempSync(join(tmpdir(), "outside-"));
+        try {
+            mkdirSync(join(root, "docs"));
+            symlinkSync(outside, join(root, "docs", "lessons"), "junction");
+
+            assert.throws(() => initLessons(initOpts(root, join(root, "docs", "lessons"), { noHook: true })), /docs\/lessons resolves outside the repo/);
+            assert.deepEqual(readdirSync(outside), []);
+        } finally {
+            rmSync(outside, { recursive: true, force: true });
+        }
+    });
+});
+
+test("initLessons accepts only safe characters in the lessons folder name", () => {
+    withRepo((root) => {
+        for (const bad of ["docs/$(touch${IFS}PROBE)", "docs/a;b", "docs/`x`", "docs/a'b", "docs/a&b"]) {
+            assert.throws(() => initLessons(initOpts(root, join(root, bad))), /lessons folder may use only letters, digits/, bad);
+        }
+        assert.equal(existsSync(join(root, "AGENTS.md")), false);
+        assert.ok(initLessons(initOpts(root, join(root, "docs", "team_notes.v2", "lessons-learned"))).created.length > 0);
+    });
+});
+
+test("dirFromBlock ignores a folder name with shell characters", () => {
+    const block = "<!-- lessons-learned:start -->\n`node docs/$(x)/lessons.mjs check`\n<!-- lessons-learned:end -->";
+
+    assert.equal(dirFromBlock(block), null);
+});
+
+test("status prints setup: update when the repo copy is outdated", () => {
+    withRepo((root) => {
+        run(["init", "--targets", "AGENTS.md"], root);
+        writeFileSync(join(root, "docs", "lessons", "lessons.mjs"), 'export const VERSION = "0.9.0";\n');
+
+        const lines = run(["status"], root).stdout.trim().split("\n");
+
+        assert.equal(lines.at(-1), "setup: update");
+    });
+});
+
+// ---- fold command ----
+
+function foldRepo(fn) {
+    withRepo((root) => {
+        const lessons = join(root, "docs", "lessons");
+        initLessons(initOpts(root, lessons, { noHook: true }));
+        createLesson(lessons, input);
+        fill(join(lessons, "L001-quote-heredocs.md"));
+        fn(root, lessons);
+    });
+}
+
+test("foldLesson deletes the entry, marks the row folded, and keeps the check green", () => {
+    foldRepo((root, lessons) => {
+        writeFileSync(join(root, "AGENTS.md"), "## Shell\n\n- Quote the heredoc delimiter when the body holds backticks. (L001)\n");
+
+        const result = foldLesson({ root, dir: lessons, id: "L001", to: "AGENTS.md" });
+
+        assert.deepEqual(result, { deleted: "docs/lessons/L001-quote-heredocs.md", folded: "L001 → AGENTS.md" });
+        assert.equal(existsSync(join(lessons, "L001-quote-heredocs.md")), false);
+        assert.deepEqual(readIndexRows(lessons).map((r) => r.status), ["folded → AGENTS.md"]);
+        assert.deepEqual(checkLessons(lessons, { root }).errors, []);
+    });
+});
+
+test("foldLesson refuses when the owner file does not cite the id, and changes nothing", () => {
+    foldRepo((root, lessons) => {
+        writeFileSync(join(root, "AGENTS.md"), "## Shell\n\n- Quote the heredoc delimiter.\n");
+
+        assert.throws(() => foldLesson({ root, dir: lessons, id: "L001", to: "AGENTS.md" }), /AGENTS\.md does not cite L001; write the rule there with "\(L001\)" first/);
+        assert.ok(existsSync(join(lessons, "L001-quote-heredocs.md")));
+        assert.deepEqual(readIndexRows(lessons).map((r) => r.status), ["active"]);
+    });
+});
+
+test("foldLesson refuses an unknown id, a lesson that is not active, and an owner outside the repo", () => {
+    foldRepo((root, lessons) => {
+        writeFileSync(join(root, "AGENTS.md"), "(L001)\n");
+
+        assert.throws(() => foldLesson({ root, dir: lessons, id: "L009", to: "AGENTS.md" }), /L009 is not in the index/);
+        assert.throws(() => foldLesson({ root, dir: lessons, id: "L001", to: "../x.md" }), /owner file must be inside the repo/);
+        assert.throws(() => foldLesson({ root, dir: lessons, id: "L001", to: "missing.md" }), /missing\.md does not exist/);
+        assert.throws(() => foldLesson({ root, dir: lessons, id: "L001", to: "docs/lessons/README.md" }), /owner file must be outside the lessons folder/);
+        foldLesson({ root, dir: lessons, id: "L001", to: "AGENTS.md" });
+        assert.throws(() => foldLesson({ root, dir: lessons, id: "L001", to: "AGENTS.md" }), /L001 is folded → AGENTS\.md, not active/);
+    });
+});
+
+test("CLI fold runs the fold and prints what changed", () => {
+    foldRepo((root) => {
+        writeFileSync(join(root, "AGENTS.md"), "(L001)\n");
+
+        const r = run(["fold", "L001", "--to", "AGENTS.md"], root);
+
+        assert.equal(r.code, 0, r.stderr);
+        assert.ok(r.stdout.includes("deleted: docs/lessons/L001-quote-heredocs.md"));
+        assert.ok(r.stdout.includes("folded: L001 → AGENTS.md"));
+        assert.equal(run(["fold"], root).code, 2);
+    });
+});
+
+test("status and check print fold: due past the threshold, with the fold mode", () => {
+    foldRepo((root, lessons) => {
+        const path = join(lessons, "config.json");
+        writeFileSync(path, JSON.stringify({ ...JSON.parse(readFileSync(path, "utf8")), foldThreshold: 0 }));
+
+        assert.ok(run(["status"], root).stdout.includes("fold: due (1 active, threshold 0, mode ask)\n"));
+        assert.ok(run(["check"], root).stdout.includes("fold: due (1 active, threshold 0, mode ask)"));
+
+        writeFileSync(path, JSON.stringify({ ...JSON.parse(readFileSync(path, "utf8")), fold: "auto" }));
+        assert.ok(run(["status"], root).stdout.includes("fold: due (1 active, threshold 0, mode auto)\n"));
+    });
+});
+
+test("status prints fold: not due under the threshold", () => {
+    foldRepo((root) => {
+        assert.ok(run(["status"], root).stdout.includes("fold: not due (1 active, threshold 15)\n"));
+    });
+});
+
+test("readConfig refuses a fold mode other than ask or auto", () => {
+    writeFileSync(join(dir, "config.json"), '{"fold":"always"}');
+
+    assert.throws(() => readConfig(dir), /config\.json: fold must be ask or auto/);
+});
+
+test("CLI init --fold auto stores the fold mode, and a rerun keeps it", () => {
+    withRepo((root) => {
+        assert.equal(run(["init", "--targets", "AGENTS.md", "--fold", "auto"], root).code, 0);
+        assert.equal(readConfig(join(root, "docs", "lessons")).fold, "auto");
+
+        run(["init"], root);
+        assert.equal(readConfig(join(root, "docs", "lessons")).fold, "auto");
+        assert.equal(run(["init", "--fold", "sometimes"], root).code, 2);
+    });
+});
+
+test("the trigger block tells agents what to do when a fold is due", () => {
+    assert.ok(renderBlock("docs/lessons").includes("`fold: due`"));
+});
+
+test("a repo copy in a nested project without .git stays in that project, not the outer git repo", () => {
+    withRepo((outer) => {
+        const project = join(outer, "packages", "app");
+        mkdirSync(project, { recursive: true });
+        const inner = mkdtempSync(join(tmpdir(), "inner-"));
+        try {
+            // Set the project up on its own (no .git), then move it under an outer git repo.
+            assert.equal(run(["init", "--targets", "AGENTS.md"], inner).code, 0);
+            rmSync(project, { recursive: true });
+            cpSync(inner, project, { recursive: true });
+
+            const r = run(["init"], project, join(project, "docs", "lessons", "lessons.mjs"));
+
+            assert.equal(r.code, 0, r.stderr);
+            assert.equal(existsSync(join(outer, "AGENTS.md")), false);
+            assert.equal(readConfig(join(project, "docs", "lessons")).dir, "docs/lessons");
+        } finally {
+            rmSync(inner, { recursive: true, force: true });
+        }
+    });
+});
+
+// ---- Codex review round 3 fixes ----
+
+test("foldLesson refuses an owner path the index cannot hold, and changes nothing", () => {
+    foldRepo((root, lessons) => {
+        for (const bad of ["team rules.md", "team|rules.md"]) {
+            writeFileSync(join(root, bad), "Check it. (L001)\n");
+            assert.throws(() => foldLesson({ root, dir: lessons, id: "L001", to: bad }), /owner file path may use only letters, digits/, bad);
+        }
+        assert.ok(existsSync(join(lessons, "L001-quote-heredocs.md")));
+        assert.deepEqual(readIndexRows(lessons).map((r) => r.status), ["active"]);
+    });
+});
+
+test("foldLesson refuses an owner that is a symlink into the lessons folder, and changes nothing", () => {
+    foldRepo((root, lessons) => {
+        const entry = join(lessons, "L001-quote-heredocs.md");
+        writeFileSync(entry, readFileSync(entry, "utf8") + "\nSee (L001).\n");
+        symlinkSync(entry, join(root, "owner.md"));
+
+        assert.throws(() => foldLesson({ root, dir: lessons, id: "L001", to: "owner.md" }), /owner file must be outside the lessons folder/);
+        assert.ok(existsSync(entry));
+    });
+});
+
+// ---- Codex review round 4 fixes ----
+
+test("initLessons refuses a lessons file that is a symlink to a file outside the repo, and changes nothing", () => {
+    for (const name of ["config.json", "README.md", "lessons.mjs"]) {
+        withRepo((root) => {
+            const lessons = join(root, "docs", "lessons");
+            initLessons(initOpts(root, lessons, { noHook: true }));
+            const outside = mkdtempSync(join(tmpdir(), "outside-"));
+            try {
+                const target = join(outside, name);
+                writeFileSync(target, readFileSync(join(lessons, name), "utf8"));
+                rmSync(join(lessons, name));
+                symlinkSync(target, join(lessons, name));
+                const before = readFileSync(target, "utf8");
+
+                assert.throws(
+                    () => initLessons(initOpts(root, lessons, { noHook: true, fold: "auto", areas: ["code"] })),
+                    new RegExp(`docs/lessons/${name.replace(".", "\\.")} resolves outside the repo`),
+                    name,
+                );
+                assert.equal(readFileSync(target, "utf8"), before, name);
+            } finally {
+                rmSync(outside, { recursive: true, force: true });
+            }
+        });
+    }
+});
+
+test("areas refuse | and line breaks in init, config.json, and new", () => {
+    withRepo((root) => {
+        assert.throws(() => initLessons(initOpts(root, join(root, "docs", "lessons"), { noHook: true, areas: ["api|web"] })), /area must not contain \| or a line break/);
+        assert.equal(existsSync(join(root, "docs")), false);
+    });
+    writeFileSync(join(dir, "config.json"), '{"areas":["api|web"]}');
+    assert.throws(() => readConfig(dir), /config\.json: areas must not contain \| or a line break/);
+    assert.throws(() => createLesson(dir, { ...input, area: "a|b" }, ["a|b"]), /area must not contain \| or a line break/);
+});
+
+test("new and fold refuse an index that is a symlink to a file outside the repo", () => {
+    foldRepo((root, lessons) => {
+        const outside = mkdtempSync(join(tmpdir(), "outside-"));
+        try {
+            const target = join(outside, "README.md");
+            writeFileSync(target, readFileSync(join(lessons, "README.md"), "utf8"));
+            rmSync(join(lessons, "README.md"));
+            symlinkSync(target, join(lessons, "README.md"));
+            writeFileSync(join(root, "AGENTS.md"), "(L001)\n");
+            const before = readFileSync(target, "utf8");
+
+            assert.equal(run(["new", "--slug", "y", "--title", "Y", "--area", "shell", "--source", "user", "--rule", "Do y.", "--keywords", "y"], root).code, 2);
+            assert.equal(run(["fold", "L001", "--to", "AGENTS.md"], root).code, 2);
+            assert.equal(readFileSync(target, "utf8"), before);
+            assert.ok(existsSync(join(lessons, "L001-quote-heredocs.md")));
+        } finally {
+            rmSync(outside, { recursive: true, force: true });
+        }
+    });
+});
+
+test("foldLesson and createLesson called directly also refuse a symlinked file outside the repo", () => {
+    foldRepo((root, lessons) => {
+        const outside = mkdtempSync(join(tmpdir(), "outside-"));
+        try {
+            const target = join(outside, "README.md");
+            writeFileSync(target, readFileSync(join(lessons, "README.md"), "utf8"));
+            rmSync(join(lessons, "README.md"));
+            symlinkSync(target, join(lessons, "README.md"));
+            writeFileSync(join(root, "AGENTS.md"), "(L001)\n");
+
+            assert.throws(() => foldLesson({ root, dir: lessons, id: "L001", to: "AGENTS.md" }), /resolves outside the repo/);
+            assert.throws(() => createLesson(lessons, { ...input, slug: "y" }, DEFAULT_AREAS, root), /resolves outside the repo/);
+            assert.ok(existsSync(join(lessons, "L001-quote-heredocs.md")));
+        } finally {
+            rmSync(outside, { recursive: true, force: true });
+        }
+    });
+});
+
+test("check does not read a folded destination that is a symlink outside the repo", () => {
+    const outside = mkdtempSync(join(tmpdir(), "outside-"));
+    try {
+        writeFileSync(join(outside, "rules.md"), "(L001)\n");
+        symlinkSync(join(outside, "rules.md"), join(dir, "RULES.md"));
+        writeFileSync(join(dir, "README.md"), INDEX_HEAD + "| L001 | 2026-10-20 | shell | X. | x | folded → RULES.md |\n");
+
+        assert.ok(checkLessons(dir, { root: dir }).errors.join("\n").includes("L001: folded destination must be inside the repo: RULES.md"));
+    } finally {
+        rmSync(outside, { recursive: true, force: true });
+    }
+});
+
+// ---- Codex review round 5 fixes ----
+
+/** Two branches each added L001; the merge kept both rows and both files. */
+function duplicateL001() {
+    createLesson(dir, input);
+    createLesson(dir, { ...input, slug: "second" });
+    writeFileSync(join(dir, "L001-second.md"), readFileSync(join(dir, "L002-second.md"), "utf8").replace("# L002", "# L001"));
+    unlinkSync(join(dir, "L002-second.md"));
+    const index = join(dir, "README.md");
+    writeFileSync(index, readFileSync(index, "utf8").replace("| L002 |", "| L001 |"));
+    completed("L001", "quote-heredocs");
+    completed("L001", "second");
+}
+
+test("check fails on a duplicate id in the index or in the entry files", () => {
+    duplicateL001();
+
+    const errors = checkLessons(dir, { root: dir }).errors.join("\n");
+
+    assert.ok(errors.includes("L001: id used by 2 index rows"));
+    assert.ok(errors.includes("L001: id used by 2 entry files"));
+});
+
+test("foldLesson refuses a duplicate id and changes nothing", () => {
+    duplicateL001();
+    writeFileSync(join(dir, "AGENTS.md"), "(L001)\n");
+    const index = readFileSync(join(dir, "README.md"), "utf8");
+
+    assert.throws(() => foldLesson({ root: dir, dir, id: "L001", to: "AGENTS.md" }), /L001 is used more than once; renumber one of them, then fold/);
+    assert.ok(existsSync(join(dir, "L001-quote-heredocs.md")));
+    assert.ok(existsSync(join(dir, "L001-second.md")));
+    assert.equal(readFileSync(join(dir, "README.md"), "utf8"), index);
+});
+
+test("CLI find labels a retired lesson so an agent does not follow it", () => {
+    withRepo((root) => {
+        run(["init", "--no-hook"], root);
+        const lessons = join(root, "docs", "lessons");
+        createLesson(lessons, input);
+        const index = join(lessons, "README.md");
+        writeFileSync(index, readFileSync(index, "utf8").replace("| active |", "| retired |"));
+
+        const out = run(["find", "heredoc"], root).stdout;
+
+        assert.ok(out.includes("L001 [shell] (retired: do not follow)"), out);
+    });
+});
+
+// ---- Codex review round 6 fix ----
+
+test("indented index rows still count for ids, duplicates, find, and fold", () => {
+    withRepo((root) => {
+        const lessons = join(root, "docs", "lessons");
+        mkdirSync(lessons, { recursive: true });
+        writeFileSync(join(lessons, "README.md"), INDEX_HEAD.replace(/^\|/gm, "  |") + "  | L001 | 2026-10-20 | shell | Quote it. | heredoc | folded → SKILL.md |\n");
+        writeFileSync(join(root, "SKILL.md"), "(L001)\n");
+
+        assert.deepEqual(readIndexRows(lessons).map((r) => r.id), ["L001"]);
+        assert.equal(createLesson(lessons, input), "L002");
+        assert.deepEqual(findRows(lessons, ["heredoc"]).map((r) => r.id), ["L001", "L002"]);
+        fill(join(lessons, "L002-quote-heredocs.md"));
+        writeFileSync(join(root, "SKILL.md"), "(L001) (L002)\n");
+        foldLesson({ root, dir: lessons, id: "L002", to: "SKILL.md" });
+        assert.deepEqual(readIndexRows(lessons).map((r) => r.status), ["folded → SKILL.md", "folded → SKILL.md"]);
+        assert.deepEqual(checkLessons(lessons, { root }).errors, []);
+    });
 });

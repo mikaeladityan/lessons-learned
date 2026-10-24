@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="460" viewBox="0 0 1200 460" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Satu ingatan untuk semua agent">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="460" rx="20" fill="#0f172a"/>
+  <text x="60" y="72" font-size="28" font-weight="700" fill="#f8fafc">Satu ingatan untuk semua agent</text>
+  <text x="60" y="104" font-size="16" fill="#94a3b8">Lesson tinggal di repo, jadi setiap tool dan rekan tim membaca aturan yang sama.</text>
+  <rect x="420" y="135" width="360" height="290" rx="14" fill="#1e293b" stroke="#475569"/>
+  <text x="446" y="174" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17" font-weight="700" fill="#f8fafc">repo-anda/</text>
+  <line x1="446" y1="186" x2="754" y2="186" stroke="#334155"/>
+  <text x="446" y="210" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#e2e8f0" xml:space="preserve">AGENTS.md</text><text x="640" y="210" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#10b981">blok pemicu</text>
+  <text x="446" y="237" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#e2e8f0" xml:space="preserve">CLAUDE.md</text><text x="640" y="237" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#10b981">blok pemicu</text>
+  <text x="446" y="264" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#93c5fd" xml:space="preserve">docs/lessons/</text>
+  <text x="446" y="291" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#e2e8f0" xml:space="preserve">  README.md</text><text x="640" y="291" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#10b981">index</text>
+  <text x="446" y="318" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#e2e8f0" xml:space="preserve">  L001-quote-heredocs.md</text>
+  <text x="446" y="345" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#e2e8f0" xml:space="preserve">  L002-vitest-run-once.md</text>
+  <text x="446" y="372" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#e2e8f0" xml:space="preserve">  L003-filter-with-t.md</text>
+  <text x="446" y="399" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15" fill="#e2e8f0" xml:space="preserve">  lessons.mjs</text><text x="640" y="399" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" fill="#10b981">find · check</text>
+  
+  <line x1="312" y1="176" x2="410" y2="176" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="888" y1="176" x2="790" y2="176" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="312" y1="276" x2="410" y2="276" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="888" y1="276" x2="790" y2="276" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="312" y1="376" x2="410" y2="376" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="888" y1="376" x2="790" y2="376" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <rect x="80" y="149" width="230" height="54" rx="27" fill="#111c33" stroke="#d97706" stroke-width="2"/>
+  <text x="195" y="182" text-anchor="middle" font-size="18" font-weight="600" fill="#f8fafc">Claude Code</text>
+  <rect x="80" y="249" width="230" height="54" rx="27" fill="#111c33" stroke="#10b981" stroke-width="2"/>
+  <text x="195" y="282" text-anchor="middle" font-size="18" font-weight="600" fill="#f8fafc">Codex</text>
+  <rect x="80" y="349" width="230" height="54" rx="27" fill="#111c33" stroke="#64748b" stroke-width="2"/>
+  <text x="195" y="382" text-anchor="middle" font-size="18" font-weight="600" fill="#f8fafc">opencode</text>
+  <rect x="890" y="149" width="230" height="54" rx="27" fill="#111c33" stroke="#3b82f6" stroke-width="2"/>
+  <text x="1005" y="182" text-anchor="middle" font-size="18" font-weight="600" fill="#f8fafc">Antigravity</text>
+  <rect x="890" y="249" width="230" height="54" rx="27" fill="#111c33" stroke="#a855f7" stroke-width="2"/>
+  <text x="1005" y="282" text-anchor="middle" font-size="18" font-weight="600" fill="#f8fafc">Gemini CLI</text>
+  <rect x="890" y="349" width="230" height="54" rx="27" fill="#111c33" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="1005" y="382" text-anchor="middle" font-size="18" font-weight="600" fill="#f8fafc">Cursor</text>
+</svg>

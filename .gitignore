@@ -1,5 +1,31 @@
+# Local planning, session memory, and eval run output. Not part of the published skill.
 .design/
 .remember/
 .workspace/
+
+# Dependencies and package-manager logs (the project has none, but contributors may run npm)
 node_modules/
+npm-debug.log*
+
+# Editors and OS files
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Local env files
+.env
+.env.*
+
+# Personal agent instructions and local skill installs at the repo root. The eval fixtures keep
+# their own AGENTS.md and CLAUDE.md, so every pattern here is anchored to the root with "/".
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+/.agents/
+/.claude/
+/.codex/
+/.cursor/
+/.gemini/
+/skills-lock.json

@@ -1,13 +1,12 @@
 ---
 name: lessons-learned
 description: >-
-  Record and look up lessons from agent mistakes so they do not repeat. Use whenever a test,
-  check, command, or review fails with a known cause, or the user corrects you ("don't do that
-  again", "you did this before", "again?!"); before starting a task, to find past lessons; and at
-  task close-out. Also use when the user says lesson, lessons learned, or post-mortem, when
-  `lessons.mjs check` warns that a fold is due, and the first time a repo uses lessons (setup).
-  Lessons live in the repo, so every agent reads them. Not for product decisions or architecture
-  records.
+  Record and look up lessons from agent mistakes so they do not repeat. Use it when a test,
+  check, command, or review fails with a known cause. Use it when the user corrects you ("don't do
+  that again", "you did this before", "again?!"). Use it before a task to find past lessons, and at
+  task close-out. Also use it for "lesson", "lessons learned", "post-mortem", a fold warning from
+  `lessons.mjs check`, and first-time setup in a repo. Lessons live in the repo, so every agent
+  reads them. Not for product decisions or architecture records.
 license: MIT
 metadata:
   author: mikaeladityan
@@ -18,8 +17,8 @@ metadata:
 
 A lesson is a mistake or incident that must not repeat, written as one rule the next agent can
 apply. Lessons live in the repo (default `docs/lessons/`), not in one agent's private memory.
-Every agent and every model that opens the repo can read them: Claude Code, Codex, opencode,
-Antigravity, Gemini CLI, Cursor, and the next session of the same agent.
+Every agent and every model that opens the repo can read them. That includes Claude Code, Codex,
+opencode, Antigravity, Gemini CLI, Cursor, and the next session of the same agent.
 
 The script has two copies with the same commands:
 
@@ -47,15 +46,20 @@ Run the skill copy first, every time this skill activates:
 node <this skill folder>/scripts/lessons.mjs status
 ```
 
-When the last line is `setup: done`, skip to the task at hand. When it is `setup: needed`, stop
-other work and set up. A lesson cannot be recorded or found without the folder.
+Act on the last line:
+
+- `setup: done`: go on with the task.
+- `setup: update`: the repo copy is older than the skill. Run `init` with no flags (add
+  `--dir <folder>` for a custom folder). It keeps the user's earlier answers. Then go on.
+- `setup: needed`: stop other work and set up (below). A lesson cannot be recorded or found
+  without the folder.
 
 1. Read the `file <name>: ...` lines. They show which instruction files exist and which already
    hold the block.
 2. Ask the user these questions in plain chat (one message). Use a question tool if your agent
    has one.
-   - **Trigger block:** "May I add a short always-on block to your agent instruction files, so
-     every agent checks lessons before work and records new ones? I would add it to: <files>."
+   - **Trigger block:** "May I add a short always-on block to your agent instruction files? It
+     makes every agent check lessons before work and record new ones. I would add it to: <files>."
      - Offer every instruction file that exists.
      - When none exists, offer `AGENTS.md` and `CLAUDE.md`.
      - Offer `GEMINI.md` only when it already exists.
@@ -63,12 +67,14 @@ other work and set up. A lesson cannot be recorded or found without the folder.
      - `references/agent-files.md` says which agent reads which file.
    - **Folder:** "Keep lessons in `docs/lessons/`?" Accept another new or empty folder inside the
      repo, without spaces. Pass it as `--dir` to every later `init`.
+   - **Fold mode:** "When lessons pile up past 15, should I ask you before each fold, or fold
+     automatically?" `ask` is the default. `auto` still shows the table, then applies it.
    - **Areas:** "Default areas are code, test, security, review, process, shell, tooling, docs.
      Add any for your stack (for example backend, frontend, database, infra)?"
 3. Run the skill copy with the answers:
 
    ```bash
-   node <this skill folder>/scripts/lessons.mjs init --targets AGENTS.md,CLAUDE.md [--dir <folder>] [--areas a,b,c]
+   node <this skill folder>/scripts/lessons.mjs init --targets AGENTS.md,CLAUDE.md [--dir <folder>] [--areas a,b,c] [--fold ask|auto]
    ```
 
    When the user declines the block, run `init --no-hook` instead. That records the answer, so
@@ -85,8 +91,7 @@ Writing to them is the user's call. Finish the task, then end the report with
 - It updates the repo copy only when that copy is older.
 - It refuses the repo root, a folder outside the repo, and an existing folder that holds other
   files. Pick a new or empty folder.
-- When `status` prints `script: outdated`, run `init` with no flags (add `--dir <folder>` for a
-  custom folder). It reuses the stored answer, so a declined block stays declined.
+- A rerun with no flags reuses the stored answer, so a declined block stays declined.
 
 ## When to write one
 
@@ -158,7 +163,8 @@ finding, and the author writes it.
 | Before a review round | `find review`. Honor the hits in the review prompt. |
 | Before every commit | `check`. |
 
-A folded hit prints `→ read <file>`. Its rule now lives in that file, so read that file.
+A folded hit prints `→ read <file>`. Its rule now lives in that file, so read that file. A retired
+hit prints `(retired: do not follow)`. Its rule is wrong now.
 
 ## Close-out after every task
 
@@ -176,10 +182,16 @@ Every task ends with this step, also the small ones. The trigger block reminds e
 The fold moves each rule into the file where the mistake happens and deletes the lesson file. Git
 history keeps the story, and the index row keeps the id.
 
-- **When:** `check` warns (more than `foldThreshold` active lessons, default 15), or the user asks.
+- **When:** `status` or `check` prints `fold: due`, or the user asks. The line looks like
+  `fold: due (16 active, threshold 15, mode ask)`.
 - **How:** follow `references/fold.md`. Run `audit`, decide fold, keep, or retire for each lesson,
   and build the fold table.
-- **Approval:** show the table to the user and stop. Delete nothing before approval.
+- **Mode `ask` (default):** show the table and stop. Delete nothing before the user approves.
+- **Mode `auto`:** the user agreed at setup to automatic folds. Show the table, then apply it
+  without waiting. Keep any lesson whose owner file is unclear.
+- **Apply:** write each rule with its id into the owner file. Then run
+  `lessons.mjs fold <L0NN> --to <owner file>` for each lesson. The command refuses when the owner
+  file does not cite the id.
 
 The folded row stays in the index:
 - `new` never reuses an id;
@@ -210,6 +222,7 @@ In the user's repo (default folder shown):
 
 **`check` fails on:**
 - an index or entry gap;
+- an id used twice (two branches added the same id; renumber one);
 - a missing section;
 - `TODO` text;
 - a rule over 20 words or with two paragraphs;
@@ -220,7 +233,7 @@ In the user's repo (default folder shown):
 
 **`check` warns on:**
 - a private path (`/Users/`, `/home/`, `C:\Users\`);
-- a passed fold threshold.
+- a passed fold threshold, as the line `fold: due (...)`.
 
 In this skill:
 
@@ -228,5 +241,5 @@ In this skill:
 - `references/fold.md`: the full fold procedure and owner-file guidance.
 - `references/agent-files.md`: which agent reads which instruction file, the block text, and how
   to remove it.
-- `scripts/lessons.mjs`: commands `status`, `init`, `new`, `find`, `check`, `audit`. Node ≥ 20,
+- `scripts/lessons.mjs`: commands `status`, `init`, `new`, `find`, `check`, `audit`, `fold`. Node ≥ 20,
   zero dependencies.

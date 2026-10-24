@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="450" viewBox="0 0 1200 450" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="How lessons-learned works">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="450" rx="20" fill="#0f172a"/>
+  <text x="60" y="72" font-size="28" font-weight="700" fill="#f8fafc">How lessons-learned works</text>
+  <text x="60" y="104" font-size="16" fill="#94a3b8">A simple loop that turns every mistake into a rule all your agents follow.</text>
+  
+  <rect x="60" y="140" width="240" height="230" rx="14" fill="#1e293b" stroke="#334155"/>
+  <rect x="60" y="140" width="240" height="5" rx="2.5" fill="#f59e0b"/>
+  <circle cx="100" cy="185" r="18" fill="#f59e0b"/>
+  <text x="100" y="191" text-anchor="middle" font-size="17" font-weight="700" fill="#0f172a">1</text>
+  <text x="84" y="236" font-size="19" font-weight="700" fill="#f8fafc"><tspan x="84" dy="0">Something goes</tspan><tspan x="84" dy="24">wrong</tspan></text>
+  <text x="84" y="300" font-size="15" fill="#cbd5e1"><tspan x="84" dy="0">A failed test, a wrong</tspan><tspan x="84" dy="21">command, or your</tspan><tspan x="84" dy="21">correction.</tspan></text>
+  <rect x="340" y="140" width="240" height="230" rx="14" fill="#1e293b" stroke="#334155"/>
+  <rect x="340" y="140" width="240" height="5" rx="2.5" fill="#3b82f6"/>
+  <circle cx="380" cy="185" r="18" fill="#3b82f6"/>
+  <text x="380" y="191" text-anchor="middle" font-size="17" font-weight="700" fill="#0f172a">2</text>
+  <text x="364" y="236" font-size="19" font-weight="700" fill="#f8fafc"><tspan x="364" dy="0">The agent writes</tspan><tspan x="364" dy="24">a lesson</tspan></text>
+  <text x="364" y="300" font-size="15" fill="#cbd5e1"><tspan x="364" dy="0">One file with one rule</tspan><tspan x="364" dy="21">of 20 words or fewer,</tspan><tspan x="364" dy="21">kept in docs/lessons/.</tspan></text>
+  <rect x="620" y="140" width="240" height="230" rx="14" fill="#1e293b" stroke="#334155"/>
+  <rect x="620" y="140" width="240" height="5" rx="2.5" fill="#10b981"/>
+  <circle cx="660" cy="185" r="18" fill="#10b981"/>
+  <text x="660" y="191" text-anchor="middle" font-size="17" font-weight="700" fill="#0f172a">3</text>
+  <text x="644" y="236" font-size="19" font-weight="700" fill="#f8fafc"><tspan x="644" dy="0">Every agent</tspan><tspan x="644" dy="24">reads it first</tspan></text>
+  <text x="644" y="300" font-size="15" fill="#cbd5e1"><tspan x="644" dy="0">Before each task, any</tspan><tspan x="644" dy="21">agent searches the</tspan><tspan x="644" dy="21">lessons for the topic.</tspan></text>
+  <rect x="900" y="140" width="240" height="230" rx="14" fill="#1e293b" stroke="#334155"/>
+  <rect x="900" y="140" width="240" height="5" rx="2.5" fill="#a855f7"/>
+  <circle cx="940" cy="185" r="18" fill="#a855f7"/>
+  <text x="940" y="191" text-anchor="middle" font-size="17" font-weight="700" fill="#0f172a">4</text>
+  <text x="924" y="236" font-size="19" font-weight="700" fill="#f8fafc"><tspan x="924" dy="0">The rule moves</tspan><tspan x="924" dy="24">where it belongs</tspan></text>
+  <text x="924" y="300" font-size="15" fill="#cbd5e1"><tspan x="924" dy="0">After 15 lessons, rules</tspan><tspan x="924" dy="21">fold into AGENTS.md,</tspan><tspan x="924" dy="21">a skill, or a test.</tspan></text>
+  <line x1="306" y1="255" x2="330" y2="255" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)"/><line x1="586" y1="255" x2="610" y2="255" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)"/><line x1="866" y1="255" x2="890" y2="255" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path d="M1020,372 L1020,408 L180,408 L180,380" fill="none" stroke="#475569" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#arrow)"/>
+  <rect x="482.4" y="396" width="235.20000000000002" height="24" fill="#0f172a"/>
+  <text x="600" y="413" text-anchor="middle" font-size="14" fill="#94a3b8">repeat for every new mistake</text>
+</svg>

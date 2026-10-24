@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="169" height="28" viewBox="0 0 169 28" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Zero dependencies">
+  <title>Zero dependencies</title>
+  <rect x="0.5" y="0.5" width="168" height="27" rx="13.5" fill="#E8F3EE" stroke="#B9D8C9"/>
+  <circle cx="14" cy="14" r="3.5" fill="#167249"/>
+  <text x="26" y="18" font-size="10.5" font-weight="700" letter-spacing="1.1" fill="#167249" fill-opacity="0.72" textLength="87.6" lengthAdjust="spacingAndGlyphs">DEPENDENCIES</text>
+  <text x="122.6" y="18" font-size="10.5" font-weight="900" letter-spacing="1.1" fill="#167249" textLength="31.6" lengthAdjust="spacingAndGlyphs">ZERO</text>
+</svg>

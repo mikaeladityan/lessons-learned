@@ -9,13 +9,22 @@
   },
   "scripts": {
     "test": "node --test skills/lessons-learned/scripts/lessons.test.mjs tests/repo.test.mjs",
-    "check": "node --check skills/lessons-learned/scripts/lessons.mjs"
+    "check": "node --check skills/lessons-learned/scripts/lessons.mjs",
+    "assets": "node tools/build-assets.mjs"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mikaeladityan/lessons-learned.git"
   },
-  "keywords": ["agent-skills", "claude-code", "codex", "opencode", "antigravity", "lessons-learned", "ai-agents"],
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "opencode",
+    "antigravity",
+    "lessons-learned",
+    "ai-agents"
+  ],
   "author": "mikaeladityan",
   "license": "MIT"
 }

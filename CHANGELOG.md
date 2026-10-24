@@ -49,5 +49,32 @@ All notable changes to this project are documented here. The format follows
 - The repo copy finds the repo root without `.git` and from any working directory, through `dir`
   in `config.json`.
 - The private-path warning is case-sensitive, so `/api/users/` is not flagged.
-- `README.md` (English) and `README.id.md` (Bahasa Indonesia).
+- `fold <L0NN> --to <owner file>` command. It checks that the owner file cites the id, deletes the
+  entry file, and marks the index row folded. It changes nothing when a check fails.
+- `status` and `check` print `fold: due (N active, threshold T, mode M)` or `fold: not due`.
+- Fold mode in `config.json`: `ask` (default) waits for approval; `auto` applies the fold table at
+  once. Set it with `init --fold ask|auto`. The trigger block tells agents to act on `fold: due`.
+- `status` prints `setup: update` when the repo copy is older than the skill.
+- `fold` refuses an owner path with characters the index cannot hold, and an owner that is a
+  symlink into the lessons folder. It checks both before it changes anything.
+- `check` fails on an id used by two index rows or two entry files. `fold` refuses such an id
+  before it changes anything.
+- `find` labels a retired lesson `(retired: do not follow)`.
+- Index rows may be indented. `new`, `find`, `check`, and `fold` read them the same way.
+- `init`, `new`, and `fold` refuse to write when a file in the lessons folder is a symlink to a
+  place outside the repo. Areas refuse `|` and line breaks.
+- The repo copy finds its root through the `dir` stored in `config.json` first, so a project inside
+  a larger git repo keeps its own root.
+- `init` refuses a lessons folder or a target that is a symlink to a place outside the repo, and a
+  lessons folder name with characters other than letters, digits, `.`, `_`, `-`, and `/`.
+- `README.md` (English) and `README.id.md` (Bahasa Indonesia), with diagrams and badges in `assets/`.
+- `tools/build-assets.mjs` (`npm run assets`): builds the diagrams, the badges, and the "Tested in real
+  projects" card as SVG files. Logos are in `tools/icons/` with their sources in `SOURCES.md`.
+- `SECURITY.md` and `CONTRIBUTING.md`.
+- Path guards. The script ignores a trigger block that points outside the repo. `init` writes
+  only to `AGENTS.md`, `CLAUDE.md`, and `GEMINI.md`. `config.json` citation roots and folded
+  destinations must stay inside the repo.
+- Lesson ids continue past `L999`. `new` never writes over an existing lesson file.
+- `check` reads index rows with or without spaces around the cells, and reports a broken row.
+- `init` keeps every byte of the user text when it adds the trigger block.
 - `evals/`: skill-creator test prompts, fixture repos, and a grader script.
