@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-10-24
+
+### Changed
+
+- Narrower lesson triggers. Record a lesson only when the cause will likely repeat and nothing in
+  the code, tests, or docs already states the rule. One-offs and machine-only facts are not lessons.
+- Lighter close-out. A task with no incident ends with `Lessons: none — no incidents`, without
+  running `check`. `find` runs before tasks that change code, not before questions.
+- The trigger block says the same. Run `init` with no flags to update the block in your repo.
+
+### Added
+
+- README: what the "with or without the skill" check measured, and why `find` relies on good
+  keywords and the fold.
+
 ## [1.0.0] - 2026-10-23
 
 ### Added

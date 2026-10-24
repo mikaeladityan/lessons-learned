@@ -50,8 +50,9 @@ Agent akan menanyakan beberapa hal singkat. Bolehkah ia menambahkan catatan pend
 dan `CLAUDE.md`? Apakah `docs/lessons/` folder yang pas? Perlu bertanya dulu sebelum fold, atau
 langsung fold sendiri? Topik apa yang cocok untuk stack Anda? Jawab saja, dan selesai.
 
-Setelah itu, bekerja seperti biasa. Saat ada yang salah, agent menulis lesson. Sebelum tugas
-berikutnya, setiap agent memeriksa lesson terlebih dahulu.
+Setelah itu, bekerja seperti biasa. Saat ada kesalahan yang kemungkinan terulang, agent menulis
+lesson. Sebelum tugas berikutnya yang mengubah kode, setiap agent memeriksa lesson terlebih dahulu.
+Gangguan sekali lewat, seperti koneksi yang putus sebentar, tidak dijadikan lesson.
 
 > [!TIP]
 > Pasang untuk agent tertentu dengan `-a claude-code -a codex`. Pasang untuk semua project dengan `-g`.
@@ -90,6 +91,10 @@ Kami memberi agent tiga permintaan yang sama, dua kali. Sekali dengan skill, sek
 | *"Pakai vitest, bukan `--grep`. Jangan diulang."* | Mencatat lesson, karena catatan di `AGENTS.md` menyuruhnya. | Mencari dulu, mencatat lesson, lalu menambahkan aturannya ke `AGENTS.md`. |
 
 Baris terakhir menunjukkan kerja catatan di `AGENTS.md`. Agent tanpa skill pun tetap mengikutinya.
+
+> [!NOTE]
+> Ini pengecekan kecil, bukan benchmark: tiga skenario, masing-masing satu kali, dengan satu agent.
+> Prompt dan repo fixture-nya ada di [`evals/`](evals/), jadi Anda bisa menjalankannya sendiri.
 
 ## Fold: dari catatan jadi aturan
 
@@ -185,6 +190,13 @@ Lesson sebaiknya ditulis dalam bahasa Inggris supaya semua model bisa membacanya
   setuju. Di mode `auto`, Anda sudah setuju sejak awal.
 - **Jangan sentuh yang bukan milik kita.** `init` hanya menulis di antara penandanya sendiri, dan menolak path di luar repo.
 - **Semua agent, stack apa pun.** File biasa dan JavaScript biasa. Tanpa build step, cukup Node.
+
+## Mencari lesson
+
+`find` mencocokkan kata kunci, jadi sebuah lesson hanya ketemu kalau agent mencari kata yang tepat.
+Karena itulah fold penting. Aturan yang sudah di-fold tinggal di `AGENTS.md` atau sebuah test, tempat
+agent membacanya tanpa perlu mencari. Tulis kata kunci yang baik: nama tool, potongan teks error,
+dan id aturan.
 
 ## Perintah
 

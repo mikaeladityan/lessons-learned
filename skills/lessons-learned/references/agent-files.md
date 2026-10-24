@@ -37,10 +37,10 @@ Checked 2026-10-23 against each tool's docs. Paths are relative to the repo root
 
 This repo records agent mistakes as lessons in `docs/lessons/` so they do not repeat.
 
-- Before you start a task, run `node docs/lessons/lessons.mjs find <keywords>`. Read every hit.
-- After a mistake, record a lesson before the next task. A mistake is an error, a blocked or retried command, a failed check, or a user correction.
+- Before a task that changes code, run `node docs/lessons/lessons.mjs find <keywords>`. Read every hit.
+- After a mistake that will likely repeat and is not written down anywhere, record a lesson before the next task. Skip one-offs.
 - To record a lesson, use the `lessons-learned` skill. Without the skill, run `node docs/lessons/lessons.mjs new` and fill the five sections.
-- Before you report a task as done, run `node docs/lessons/lessons.mjs check`. End the report with `Lessons: L0NN | none — <reason>`.
+- End every report with `Lessons: L0NN | none — <reason>`. If you recorded a lesson, run `node docs/lessons/lessons.mjs check` first.
 - Gate commits on the check: `node docs/lessons/lessons.mjs check && git commit ...`.
 - When `status` or `check` prints `fold: due`, run the fold from the `lessons-learned` skill. In mode `ask`, show the fold table and wait for approval.
 <!-- lessons-learned:end -->

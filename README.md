@@ -49,8 +49,9 @@ Your agent asks a few quick questions. Can it add a short note to `AGENTS.md` an
 Is `docs/lessons/` a good folder? Should it ask before a fold, or fold on its own? Which topics fit
 your stack? Answer them, and you are done.
 
-From then on, just work. When something goes wrong, the agent writes a lesson. Before the next
-task, every agent checks the lessons first.
+From then on, just work. When a mistake is likely to happen again, the agent writes a lesson.
+Before the next task that changes code, every agent checks the lessons first. One-off hiccups,
+like a flaky network call, don't become lessons.
 
 > [!TIP]
 > Install for specific agents with `-a claude-code -a codex`. Install for all your projects with `-g`.
@@ -88,6 +89,10 @@ We gave an agent the same three requests twice, once with the skill and once wit
 | *"Use vitest, not `--grep`. Never again."* | Records the lesson, because the note in `AGENTS.md` told it to. | Searches first, records the lesson, and adds the rule to `AGENTS.md`. |
 
 The last row shows the note in `AGENTS.md` at work. An agent without the skill still follows it.
+
+> [!NOTE]
+> This is a small check, not a benchmark: three scenarios, one run each, with one agent. The prompts
+> and fixture repos are in [`evals/`](evals/) so you can run them yourself.
 
 ## The fold: from notes to rules
 
@@ -180,6 +185,12 @@ The **Guard** says what stops a repeat. That can be a test, a lint, or a line in
   mode, you agreed in advance.
 - **Never touch what isn't ours.** `init` writes only between its own markers. It refuses paths outside the repo.
 - **Every agent, any stack.** Plain files and plain JavaScript. No build step and no runtime besides Node.
+
+## Finding lessons
+
+`find` matches keywords, so a lesson turns up only when the agent searches for the right word.
+That is why the fold matters. A folded rule lives in `AGENTS.md` or a test, where the agent reads it
+without searching. Write good keywords: the tool name, a fragment of the error text, the rule id.
 
 ## Commands
 

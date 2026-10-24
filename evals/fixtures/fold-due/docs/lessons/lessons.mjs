@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSyn
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const VERSION = "1.0.0";
+export const VERSION = "1.1.0";
 
 export const DEFAULT_AREAS = ["code", "test", "security", "review", "process", "shell", "tooling", "docs"];
 export const SOURCES = ["execution", "verify", "review", "security", "browser", "user"];
@@ -441,10 +441,10 @@ export function renderBlock(dirRel) {
 
 This repo records agent mistakes as lessons in \`${dirRel}/\` so they do not repeat.
 
-- Before you start a task, run \`node ${dirRel}/lessons.mjs find <keywords>\`. Read every hit.
-- After a mistake, record a lesson before the next task. A mistake is an error, a blocked or retried command, a failed check, or a user correction.
+- Before a task that changes code, run \`node ${dirRel}/lessons.mjs find <keywords>\`. Read every hit.
+- After a mistake that will likely repeat and is not written down anywhere, record a lesson before the next task. Skip one-offs.
 - To record a lesson, use the \`lessons-learned\` skill. Without the skill, run \`node ${dirRel}/lessons.mjs new\` and fill the five sections.
-- Before you report a task as done, run \`node ${dirRel}/lessons.mjs check\`. End the report with \`Lessons: L0NN | none — <reason>\`.
+- End every report with \`Lessons: L0NN | none — <reason>\`. If you recorded a lesson, run \`node ${dirRel}/lessons.mjs check\` first.
 - Gate commits on the check: \`node ${dirRel}/lessons.mjs check && git commit ...\`.
 - When \`status\` or \`check\` prints \`fold: due\`, run the fold from the \`lessons-learned\` skill. In mode \`ask\`, show the fold table and wait for approval.
 ${MARK_END}`;

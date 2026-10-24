@@ -10,7 +10,7 @@ description: >-
 license: MIT
 metadata:
   author: mikaeladityan
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Lessons Learned
@@ -95,23 +95,29 @@ Writing to them is the user's call. Finish the task, then end the report with
 
 ## When to write one
 
-Write a lesson in the same session, as soon as the cause is known, before the next task, when:
+A lesson costs every future agent a little reading time. Write one only when both are true:
 
-- a test, check, or verification step fails for a reason the plan did not foresee;
-- a command errors, is blocked, or needs a retry;
+1. **The cause will likely happen again.** Another agent, in another session, can hit the same thing.
+2. **Nothing already says it.** The code, a test, a lint, the README, or an instruction file does not
+   state the rule.
+
+Typical moments that pass both tests:
+
+- a test or check fails for a reason the plan did not foresee;
+- a command fails because of a project fact (a flag, a path, a tool version) the agent did not know;
 - a reviewer (human or another model) finds a real gap;
-- a security check or a browser check finds a defect;
 - the user corrects the agent;
 - the agent lost more than a few minutes that a note would have saved.
 
-The point is the next agent: it does not remember this session. A lesson is the only way the cause
-you just found reaches it.
+Write it in the same session, as soon as the cause is known, before the next task. The next agent
+does not remember this session. A lesson is the only way the cause reaches it.
 
 **No lesson for:**
-- a typo fixed in one step;
+- a one-off: a typo, a flaky network call, a retry that worked;
+- a fact about this machine, not the project (a tool missing from one laptop);
 - a product decision (it belongs in the project docs or an ADR);
 - a reviewer finding the author rejected with evidence;
-- a fact the code already states.
+- a fact the code, a test, or the docs already state.
 
 ## How to write one
 
@@ -158,7 +164,7 @@ finding, and the author writes it.
 
 | Moment | Run |
 |---|---|
-| Before the first edit of a task | `find` with the module, layer, and tool words. Read every hit. |
+| Before the first edit of a task that changes code | `find` with the module, layer, and tool words. Read every hit. Skip it for a question or a one-line change. |
 | Before the first debugging hypothesis | `find` with the error text and the symptom words. |
 | Before a review round | `find review`. Honor the hits in the review prompt. |
 | Before every commit | `check`. |
@@ -168,12 +174,14 @@ hit prints `(retired: do not follow)`. Its rule is wrong now.
 
 ## Close-out after every task
 
-Every task ends with this step, also the small ones. The trigger block reminds every agent of it.
+Every task ends with one line, so the user sees that you checked:
+`Lessons: L0NN[, L0NN] | none — <reason>`.
 
-1. List the session's incidents (the triggers in "When to write one"). Give each a lesson or a
-   reason for none.
-2. Run `lessons.mjs check`. Errors block "done".
-3. End the report with one line: `Lessons: L0NN[, L0NN] | none — <reason>`.
+- **Nothing went wrong:** write `Lessons: none — no incidents`. Skip the rest.
+- **Something went wrong:**
+  1. List the incidents. Give each a lesson or a reason for none ("one-off", "already in the README").
+  2. Run `lessons.mjs check`. Errors block "done".
+  3. End the report with the `Lessons:` line.
 4. When `check` warns that the fold threshold is passed, add `Fold due: N active lessons`. Do not
    fold inside a feature or bugfix change. The fold is its own change, with its own review.
 
