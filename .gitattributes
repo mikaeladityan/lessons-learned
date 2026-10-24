@@ -1,0 +1,3 @@
+# Keep LF in the repo and in checkouts on every OS. The tests compare file bytes, and the skill's
+# own Markdown is read by agents on all platforms.
+* text=auto eol=lf

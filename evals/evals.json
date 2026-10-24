@@ -1,0 +1,54 @@
+{
+  "skill_name": "lessons-learned",
+  "evals": [
+    {
+      "id": 1,
+      "name": "setup-fresh-repo",
+      "fixture": "evals/fixtures/fresh-repo",
+      "prompt": "set up lessons learned in this repo. put the trigger in AGENTS.md and CLAUDE.md, keep the default folder and areas",
+      "expected_output": "docs/lessons/ with README.md index, config.json, and lessons.mjs; one marker block in each of AGENTS.md and CLAUDE.md; status prints setup: done.",
+      "files": [],
+      "assertions": [
+        "docs/lessons/README.md index exists",
+        "docs/lessons/lessons.mjs repo copy exists",
+        "AGENTS.md holds exactly one marker block",
+        "CLAUDE.md holds exactly one marker block",
+        "status prints setup: done",
+        "check exits 0"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "record-user-correction",
+      "fixture": "evals/fixtures/repo-with-lessons",
+      "prompt": "the tests failed again because you ran `npm test -- --grep auth` but this project uses vitest and needs `npx vitest run -t auth`. make sure this never happens again",
+      "expected_output": "The agent searches existing lessons first, finds L002 (vitest watch) is a different rule, records L003 with source user, fills all five sections, keeps the rule within 20 words, and check exits 0.",
+      "files": [],
+      "assertions": [
+        "a new lesson L003 exists",
+        "check exits 0 (all five sections filled, no TODO, rule <= 20 words)",
+        "L003 source is user",
+        "L003 names the vitest filter flag -t",
+        "L002 was not duplicated (only one new entry)",
+        "find ran before new",
+        "rule moved to an always-read file (AGENTS.md or CLAUDE.md cites L003)",
+        "final reply ends with a Lessons: line"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "fold-due",
+      "fixture": "evals/fixtures/fold-due",
+      "prompt": "check says fold is due, do the fold",
+      "expected_output": "The agent runs audit, builds a fold table (Lesson / Decision / Owner file / New line), deletes no lesson file, and stops for user approval.",
+      "files": [],
+      "assertions": [
+        "no lesson entry file was deleted",
+        "reply holds a fold table with Decision and Owner columns",
+        "reply asks the user for approval",
+        "audit ran",
+        "no index row changed to folded before approval"
+      ]
+    }
+  ]
+}

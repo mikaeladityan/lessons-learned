@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "areas": [
+    "code",
+    "test",
+    "security",
+    "review",
+    "process",
+    "shell",
+    "tooling",
+    "docs"
+  ],
+  "trigger": "installed",
+  "targets": [
+    "CLAUDE.md"
+  ],
+  "foldThreshold": 15,
+  "citationRoots": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    ".agents",
+    ".claude",
+    "docs"
+  ],
+  "dir": "docs/lessons"
+}
