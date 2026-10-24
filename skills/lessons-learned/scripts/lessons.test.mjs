@@ -36,6 +36,24 @@ import {
 } from "./lessons.mjs";
 
 const FOLD_THRESHOLD = DEFAULT_FOLD_THRESHOLD;
+
+/**
+ * True when this machine can create a file symlink. Windows needs Developer Mode or admin rights for it,
+ * and some CI runners have neither. Tests that need one are skipped there; the guards still run.
+ */
+const CAN_SYMLINK_FILES = (() => {
+    const probe = mkdtempSync(join(tmpdir(), "symlink-probe-"));
+    try {
+        writeFileSync(join(probe, "target"), "");
+        symlinkSync(join(probe, "target"), join(probe, "link"));
+        return true;
+    } catch {
+        return false;
+    } finally {
+        rmSync(probe, { recursive: true, force: true });
+    }
+})();
+const fileSymlinkTest = CAN_SYMLINK_FILES ? test : test.skip;
 const INDEX_HEAD = "# Lessons\n\n## Index\n\n| ID | Date | Area | Rule | Keywords | Status |\n|---|---|---|---|---|---|\n";
 
 let dir;
@@ -1057,7 +1075,7 @@ test("a folded destination outside the repo fails the check without reading it",
 
 // ---- Codex review round 2 fixes ----
 
-test("initLessons refuses a target that is a symlink to a file outside the repo", () => {
+fileSymlinkTest("initLessons refuses a target that is a symlink to a file outside the repo", () => {
     withRepo((root) => {
         const outside = mkdtempSync(join(tmpdir(), "outside-"));
         try {
@@ -1243,7 +1261,8 @@ test("a repo copy in a nested project without .git stays in that project, not th
 test("foldLesson refuses an owner path the index cannot hold, and changes nothing", () => {
     foldRepo((root, lessons) => {
         for (const bad of ["team rules.md", "team|rules.md"]) {
-            writeFileSync(join(root, bad), "Check it. (L001)\n");
+            // Windows forbids "|" in a file name. The guard refuses the path before it reads the file anyway.
+            if (!bad.includes("|") || process.platform !== "win32") writeFileSync(join(root, bad), "Check it. (L001)\n");
             assert.throws(() => foldLesson({ root, dir: lessons, id: "L001", to: bad }), /owner file path may use only letters, digits/, bad);
         }
         assert.ok(existsSync(join(lessons, "L001-quote-heredocs.md")));
@@ -1251,7 +1270,7 @@ test("foldLesson refuses an owner path the index cannot hold, and changes nothin
     });
 });
 
-test("foldLesson refuses an owner that is a symlink into the lessons folder, and changes nothing", () => {
+fileSymlinkTest("foldLesson refuses an owner that is a symlink into the lessons folder, and changes nothing", () => {
     foldRepo((root, lessons) => {
         const entry = join(lessons, "L001-quote-heredocs.md");
         writeFileSync(entry, readFileSync(entry, "utf8") + "\nSee (L001).\n");
@@ -1264,7 +1283,7 @@ test("foldLesson refuses an owner that is a symlink into the lessons folder, and
 
 // ---- Codex review round 4 fixes ----
 
-test("initLessons refuses a lessons file that is a symlink to a file outside the repo, and changes nothing", () => {
+fileSymlinkTest("initLessons refuses a lessons file that is a symlink to a file outside the repo, and changes nothing", () => {
     for (const name of ["config.json", "README.md", "lessons.mjs"]) {
         withRepo((root) => {
             const lessons = join(root, "docs", "lessons");
@@ -1300,7 +1319,7 @@ test("areas refuse | and line breaks in init, config.json, and new", () => {
     assert.throws(() => createLesson(dir, { ...input, area: "a|b" }, ["a|b"]), /area must not contain \| or a line break/);
 });
 
-test("new and fold refuse an index that is a symlink to a file outside the repo", () => {
+fileSymlinkTest("new and fold refuse an index that is a symlink to a file outside the repo", () => {
     foldRepo((root, lessons) => {
         const outside = mkdtempSync(join(tmpdir(), "outside-"));
         try {
@@ -1321,7 +1340,7 @@ test("new and fold refuse an index that is a symlink to a file outside the repo"
     });
 });
 
-test("foldLesson and createLesson called directly also refuse a symlinked file outside the repo", () => {
+fileSymlinkTest("foldLesson and createLesson called directly also refuse a symlinked file outside the repo", () => {
     foldRepo((root, lessons) => {
         const outside = mkdtempSync(join(tmpdir(), "outside-"));
         try {
@@ -1340,7 +1359,7 @@ test("foldLesson and createLesson called directly also refuse a symlinked file o
     });
 });
 
-test("check does not read a folded destination that is a symlink outside the repo", () => {
+fileSymlinkTest("check does not read a folded destination that is a symlink outside the repo", () => {
     const outside = mkdtempSync(join(tmpdir(), "outside-"));
     try {
         writeFileSync(join(outside, "rules.md"), "(L001)\n");

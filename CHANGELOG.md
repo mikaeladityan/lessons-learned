@@ -61,6 +61,16 @@ All notable changes to this project are documented here. The format follows
   before it changes anything.
 - `find` labels a retired lesson `(retired: do not follow)`.
 - Index rows may be indented. `new`, `find`, `check`, and `fold` read them the same way.
+
+### Fixed
+
+- CI on Windows. Two kinds of test setup could not run there:
+  - a file named `team|rules.md` (Windows forbids `|` in a file name);
+  - file symlinks (Windows needs Developer Mode or admin rights).
+
+  The first now skips writing the file on Windows. The symlink tests are skipped where the OS cannot create a
+  file symlink. Folder symlinks use junctions, which work on Windows without extra rights.
+- CI uses `actions/checkout@v5` and `actions/setup-node@v5`, which run on Node 24.
 - `init`, `new`, and `fold` refuse to write when a file in the lessons folder is a symlink to a
   place outside the repo. Areas refuse `|` and line breaks.
 - The repo copy finds its root through the `dir` stored in `config.json` first, so a project inside
