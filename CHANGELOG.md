@@ -10,6 +10,9 @@ All notable changes to this project are documented here. The format follows
 
 - README FAQ "How do I update it?": the steps to update the repo copy and commit it, and what to do
   when `check` fails after an update.
+- README "See the difference": results of the three new eval scenarios (`retire-outdated`,
+  `headless-no-setup`, `fold-auto`). With the skill: 15 of 15 checks. Without it: 13 of 15. The
+  gap is small in a repo that is already set up, and the README now says so.
 
 ## [1.2.0] - 2026-10-29
 

@@ -92,9 +92,22 @@ Kami memberi agent tiga permintaan yang sama, dua kali. Sekali dengan skill, sek
 
 Baris terakhir menunjukkan kerja catatan di `AGENTS.md`. Agent tanpa skill pun tetap mengikutinya.
 
+Di repo yang sudah ter-setup, bedanya kecil. Catatan dan salinan script di repo juga membimbing
+agent tanpa skill:
+
+| Anda bilang | Tanpa skill | Dengan skill |
+|---|---|---|
+| *"Lesson L002 sudah salah. Bereskan"* | Menemukan `retire` di script lalu memakainya. | Memakai `retire`. |
+| *"Fold is due, do the fold"* (mode `auto`) | Mem-fold 6 lesson, cukup supaya check lolos. Tanpa tabel fold. | Menunjukkan tabel fold, lalu mem-fold 11 dan menyimpan 5, masing-masing dengan alasan. |
+| Run batch di repo yang belum di-setup | Mengerjakan tugasnya. Tidak menyebut lesson sama sekali. | Mengerjakan tugasnya, tidak menyentuh file instruksi, dan melaporkan `Lessons: setup needed`. |
+
+Skill menambahkan prosedur dan laporannya: tabel fold, alasannya, dan baris `Lessons:`.
+
 > [!NOTE]
-> Ini pengecekan kecil, bukan benchmark: tiga skenario, masing-masing satu kali, dengan satu agent.
-> Prompt dan repo fixture-nya ada di [`evals/`](evals/), jadi Anda bisa menjalankannya sendiri.
+> Ini pengecekan kecil, bukan benchmark: enam skenario, masing-masing satu kali, dengan satu agent.
+> Dengan skill, agent lolos semua pengecekan: 100% di kedua putaran. Tanpa skill, rata-rata tingkat
+> lolos per skenario 40% di tiga skenario pertama dan 85% di tiga skenario terakhir. Prompt dan repo
+> fixture-nya ada di [`evals/`](evals/), jadi Anda bisa menjalankannya sendiri.
 
 ## Fold: dari catatan jadi aturan
 
