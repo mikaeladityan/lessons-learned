@@ -14,6 +14,16 @@ All notable changes to this project are documented here. The format follows
   `headless-no-setup`, `fold-auto`). With the skill: 15 of 15 checks. Without it: 13 of 15. The
   gap is small in a repo that is already set up, and the README now says so.
 
+## [1.2.1] - 2026-10-29
+
+### Security
+
+- A dangling symlink no longer passes the repo-boundary check. Before, `init` followed a lessons
+  file or an instruction target that pointed to a missing path outside the repo, and created it.
+- Lessons files (index, config, script copy, entries) must resolve inside the lessons folder, not
+  only inside the repo. Before, `new`, `retire`, `fold`, and `init` wrote through a symlink to
+  another file in the repo.
+
 ## [1.2.0] - 2026-10-29
 
 ### Added

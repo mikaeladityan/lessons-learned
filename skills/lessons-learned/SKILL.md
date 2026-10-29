@@ -10,7 +10,7 @@ description: >-
 license: MIT
 metadata:
   author: mikaeladityan
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # Lessons Learned
