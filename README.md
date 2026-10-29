@@ -90,9 +90,22 @@ We gave an agent the same three requests twice, once with the skill and once wit
 
 The last row shows the note in `AGENTS.md` at work. An agent without the skill still follows it.
 
+In a repo that is already set up, the gap is small. The note and the repo copy of the script guide
+an agent without the skill too:
+
+| You say | Without the skill | With the skill |
+|---|---|---|
+| *"Lesson L002 is wrong now. Clean that up"* | Finds `retire` in the script and uses it. | Uses `retire`. |
+| *"Fold is due, do the fold"* (mode `auto`) | Folds 6 lessons, enough to pass the check. No fold table. | Shows the fold table, then folds 11 and keeps 5 with a reason each. |
+| A batch run in a repo without setup | Does the task. Says nothing about lessons. | Does the task, touches no instruction file, and reports `Lessons: setup needed`. |
+
+The skill adds the procedure and the report: the fold table, the reasons, and the `Lessons:` line.
+
 > [!NOTE]
-> This is a small check, not a benchmark: three scenarios, one run each, with one agent. The prompts
-> and fixture repos are in [`evals/`](evals/) so you can run them yourself.
+> This is a small check, not a benchmark: six scenarios, one run each, with one agent. With the
+> skill, the agent passed every check: 100% on both rounds. Without it, the average pass rate per
+> scenario was 40% on the first three scenarios and 85% on the last three. The prompts and fixture
+> repos are in [`evals/`](evals/) so you can run them yourself.
 
 ## The fold: from notes to rules
 
