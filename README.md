@@ -188,7 +188,9 @@ The **Guard** says what stops a repeat. That can be a test, a lint, or a line in
 
 ## Finding lessons
 
-`find` matches keywords, so a lesson turns up only when the agent searches for the right word.
+`find` matches keywords in the index and in each lesson file, so error text from a Symptom turns
+up too. Lessons that match more of your words come first. A lesson still turns up only when the
+agent searches for a word it holds.
 That is why the fold matters. A folded rule lives in `AGENTS.md` or a test, where the agent reads it
 without searching. Write good keywords: the tool name, a fragment of the error text, the rule id.
 
@@ -206,10 +208,11 @@ node docs/lessons/lessons.mjs check          # validate every lesson
 | `status` | Shows whether setup is done. |
 | `init` | Sets up the folder and the note in `AGENTS.md` / `CLAUDE.md`. You can run it again safely. |
 | `new` | Creates a new lesson file. |
-| `find` | Searches lessons by keyword. |
-| `check` | Validates every lesson. It exits with code 1 on a problem, so it works as a commit or CI gate. |
+| `find` | Searches lessons by keyword, including error text in the lesson file. Best matches first. |
+| `check` | Validates every lesson. It fails on a missing index, an empty section, or a token that looks like a secret. It exits with code 1 on a problem, so it works as a commit or CI gate. |
 | `audit` | Lists active lessons and where each rule is used. The fold starts here. |
 | `fold` | Moves one lesson after its rule is in place: `fold L004 --to AGENTS.md`. It refuses if `AGENTS.md` does not cite `L004`. |
+| `retire` | Marks a lesson whose rule is wrong now: `retire L004 --reason "vitest 3 fixed it"`. The file stays. |
 
 **Block bad commits.** Run the check before each commit:
 

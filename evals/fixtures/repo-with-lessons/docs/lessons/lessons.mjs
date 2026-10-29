@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // lessons-learned helper. One file per lesson in the lessons folder, one index row in its README.md.
-// Zero dependencies: Node >= 20 built-ins only. Run `node lessons.mjs` for the command list.
+// Zero dependencies: Node >= 22 built-ins only. Run `node lessons.mjs` for the command list.
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const VERSION = "1.1.0";
+export const VERSION = "1.2.0";
 
 export const DEFAULT_AREAS = ["code", "test", "security", "review", "process", "shell", "tooling", "docs"];
 export const SOURCES = ["execution", "verify", "review", "security", "browser", "user"];
@@ -36,6 +36,30 @@ const RULE_MAX_WORDS = 20;
 /** Index status of a lesson whose rule now lives in another file; its entry file is deleted. */
 const FOLDED_RE = /^folded → (\S+)$/;
 const SKIP_DIRS = new Set(["node_modules", ".git"]);
+/**
+ * Token shapes that are credentials, not prose. Lessons are committed, so one of these is a leak. Each pattern
+ * matches the whole token, so redaction leaves no tail, and none has a lookahead, so a scan stays linear.
+ * `accept` filters a match: an `sk-` key mixes digits and capitals; `sk-learn-feature-selection` has neither.
+ * @type {{ re: RegExp, accept?: (token: string) => boolean }[]}
+ */
+const SECRETS = [
+    { re: /\bgh[pousr]_[A-Za-z0-9]{36,}/g },
+    { re: /\bgithub_pat_[A-Za-z0-9_]{22,}/g },
+    { re: /\bAKIA[0-9A-Z]{16}\b/g },
+    { re: /\bsk-[A-Za-z0-9_-]{20,}/g, accept: (t) => /\d/.test(t) && /[A-Z]/.test(t) },
+    { re: /\bxox[abprs]-[A-Za-z0-9-]{10,}/g },
+    { re: /-----BEGIN [A-Z ]*PRIVATE KEY-----/g },
+];
+
+/** True when `text` holds a secret-shaped token. */
+function hasSecret(text) {
+    return SECRETS.some(({ re, accept }) => [...text.matchAll(re)].some((m) => !accept || accept(m[0])));
+}
+
+/** `text` with every secret-shaped token replaced, for anything the script prints back. */
+function redact(text) {
+    return SECRETS.reduce((out, { re, accept }) => out.replace(re, (t) => (!accept || accept(t) ? "<redacted>" : t)), text);
+}
 
 /** @param {string[]} ids */
 export function nextId(ids) {
@@ -46,8 +70,10 @@ export function nextId(ids) {
     return `L${String(max + 1).padStart(3, "0")}`;
 }
 
-function today() {
-    return new Date().toISOString().slice(0, 10);
+/** The local calendar date. A UTC date would stamp a lesson written after midnight in UTC+7 with yesterday. */
+export function today(at = new Date()) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`;
 }
 
 /** @param {string} id @param {LessonInput} input */
@@ -103,10 +129,17 @@ function fileId(file) {
     return FILE_RE.exec(file)?.[1] ?? "";
 }
 
+/** Entry files whose real path is outside the lessons folder (a symlink). No command reads them. */
+function linkedOutEntries(dir) {
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir).filter((f) => FILE_RE.test(f) && !realInsideRepo(dir, join(dir, f)));
+}
+
 /** @param {string} dir */
 function entryFiles(dir) {
     if (!existsSync(dir)) return [];
-    return readdirSync(dir).filter((f) => FILE_RE.test(f));
+    const linked = new Set(linkedOutEntries(dir));
+    return readdirSync(dir).filter((f) => FILE_RE.test(f) && !linked.has(f));
 }
 
 /** The line ending a file already uses: CRLF when it has any, else LF. */
@@ -144,13 +177,24 @@ export function createLesson(dir, input, areas = DEFAULT_AREAS, root) {
     return id;
 }
 
-/** @param {string} dir @param {string[]} keywords */
+/**
+ * Rows that match any keyword in the index row or the entry body (error text lives in the Symptom).
+ * Rows that match more keywords come first; ties keep index order.
+ * @param {string} dir @param {string[]} keywords
+ */
 export function findRows(dir, keywords) {
     const needles = keywords.map((k) => k.toLowerCase());
-    return readIndexRows(dir).filter((row) => {
-        const hay = `${row.area} ${row.rule} ${row.keywords}`.toLowerCase();
-        return needles.some((n) => hay.includes(n));
-    });
+    const files = entryFiles(dir);
+    return readIndexRows(dir)
+        .map((row, order) => {
+            const file = files.find((f) => fileId(f) === row.id);
+            const body = file ? readFileSync(join(dir, file), "utf8") : "";
+            const hay = `${row.area} ${row.rule} ${row.keywords} ${body}`.toLowerCase();
+            return { row, order, hits: needles.filter((n) => hay.includes(n)).length };
+        })
+        .filter((m) => m.hits > 0)
+        .sort((a, b) => b.hits - a.hits || a.order - b.order)
+        .map((m) => m.row);
 }
 
 /**
@@ -203,8 +247,12 @@ export function checkLessons(dir, opts = {}) {
     const rowIds = new Set(rows.map((r) => r.id));
 
     const indexPath = join(dir, INDEX);
-    if (existsSync(indexPath)) {
-        for (const line of readFileSync(indexPath, "utf8").split(/\r?\n/)) {
+    // Without the index, every other check passes on nothing. That is a false green, not an empty repo.
+    if (!existsSync(indexPath)) errors.push(`index ${INDEX} missing in the lessons folder: run init`);
+    else {
+        const indexText = readFileSync(indexPath, "utf8");
+        if (hasSecret(indexText)) errors.push(`secret-shaped token in ${INDEX}; remove it and rotate it`);
+        for (const line of indexText.split(/\r?\n/)) {
             if (ROW_START_RE.test(line) && !ROW_RE.test(line)) {
                 errors.push(`${/L\d{3,}/.exec(line)?.[0]}: index row does not have 6 cells: ${line.trim()}`);
             }
@@ -242,18 +290,26 @@ export function checkLessons(dir, opts = {}) {
     if (active > foldThreshold) {
         warnings.push(`${active} active lessons (fold threshold ${foldThreshold}): run the fold step (lessons-learned skill → Fold)`);
     }
+    for (const file of linkedOutEntries(dir)) errors.push(`${fileId(file)}: ${file} resolves outside the lessons folder (a symlink); replace it with the file`);
     for (const file of files) {
         const id = fileId(file);
         if (!rowIds.has(id)) errors.push(`${id}: entry file without an index row`);
         const text = readFileSync(join(dir, file), "utf8").replace(/\r\n/g, "\n");
         if (text.includes("TODO")) errors.push(`${id}: TODO text left in ${file}`);
         for (const section of SECTIONS) {
-            if (!new RegExp(`\\n## ${section}[ \\t]*\\n`).test(text)) errors.push(`${id}: section "${section}" missing in ${file}`);
+            const body = new RegExp(`\\n## ${section}[ \\t]*\\n([\\s\\S]*?)(?=\\n## |$)`).exec(text);
+            if (!body) errors.push(`${id}: section "${section}" missing in ${file}`);
+            else if (body[1].trim() === "") errors.push(`${id}: section "${section}" is empty in ${file}`);
         }
         // Case-sensitive: `/Users/` is a macOS home, `/users/` is usually an API route.
         if (/\/Users\/|\/home\/|[A-Z]:\\Users\\/.test(text)) warnings.push(`${id}: private path in ${file}`);
+        // Name the file, never the match: the error output can land in a CI log.
+        if (hasSecret(text)) errors.push(`${id}: secret-shaped token in ${file}; remove it and rotate it`);
         const rule = /\n## Rule[ \t]*\n([\s\S]*?)\n## Guard[ \t]*\n/.exec(text)?.[1]?.trim() ?? "";
         const indexed = rows.find((r) => r.id === id);
+        if (indexed?.status === "retired" && !/\nRetired: \d{4}-\d{2}-\d{2} — \S/.test(text)) {
+            errors.push(`${id}: retired, so add "Retired: <date> — <reason>" under the title in ${file}`);
+        }
         if (indexed && indexed.rule !== rule) errors.push(`${id}: index rule differs from the entry rule in ${file}`);
         const ruleWords = rule.split(/\s+/).filter(Boolean).length;
         if (ruleWords > RULE_MAX_WORDS) errors.push(`${id}: rule has ${ruleWords} words (max ${RULE_MAX_WORDS}) in ${file}`);
@@ -263,7 +319,8 @@ export function checkLessons(dir, opts = {}) {
             if (words > MAX_WORDS) errors.push(`${id}: long sentence (${words} words) in ${file}`);
         }
     }
-    return { errors, warnings };
+    // Messages quote index cells, and they can land in a CI log. Redact once, here, for all of them.
+    return { errors: errors.map(redact), warnings: warnings.map(redact) };
 }
 
 /**
@@ -624,7 +681,11 @@ export function auditLessons(dir, opts = {}) {
     const files = entryFiles(dir);
     const seen = new Set();
     const sources = roots
+        // A root that resolves outside the repo is never opened, not even to list it.
+        .filter((r) => realInsideRepo(root, join(root, r)))
         .flatMap((r) => listMarkdown(join(root, r), dir))
+        // A symlinked root or file can point outside the repo. Audit reads only the repo.
+        .filter((f) => realInsideRepo(root, f))
         .filter((f) => {
             const real = realpathSync(f);
             return !seen.has(real) && seen.add(real);
@@ -695,6 +756,44 @@ export function foldLesson({ root, dir, id, to }) {
 }
 
 /**
+ * Retire one active lesson whose rule is wrong now: mark the index row and the entry `retired`, and add a
+ * dated `Retired:` line under the title. The file stays, so the story and the id stay.
+ * @param {{ dir: string, id: string, reason: string, date?: string, root?: string }} opts
+ * @returns {string} the repo-relative or folder-relative entry path
+ */
+export function retireLesson({ dir, id, reason, date, root }) {
+    if (root) assertLessonsInRepo(root, dir);
+    if (typeof reason !== "string" || reason.trim() === "") throw new Error("retire needs a reason: --reason <why the rule is wrong now>");
+    if (/[\r\n]/.test(reason)) throw new Error("reason must not contain a line break");
+    const matches = readIndexRows(dir).filter((r) => r.id === id);
+    if (matches.length > 1 || entryFiles(dir).filter((f) => fileId(f) === id).length > 1) {
+        throw new Error(`${id} is used more than once; renumber one of them, then retire`);
+    }
+    const row = matches[0];
+    if (!row) throw new Error(`${id} is not in the index`);
+    if (row.status !== "active") throw new Error(`${id} is ${row.status}, not active`);
+    const file = entryFiles(dir).find((f) => fileId(f) === id);
+    if (!file) throw new Error(`${id} has no entry file`);
+
+    const entryPath = join(dir, file);
+    const entry = readFileSync(entryPath, "utf8");
+    const eol = eolOf(entry);
+    const lines = entry.split(eol);
+    lines.splice(1, 0, "", `Retired: ${date ?? today()} — ${reason.trim()}`);
+    const updated = lines.join(eol).replace(/· Status: active/, "· Status: retired");
+
+    const indexPath = join(dir, INDEX);
+    const index = readFileSync(indexPath, "utf8").split(/(?<=\n)/);
+    const at = index.findIndex((line) => ROW_RE.exec(line.replace(/\r?\n$/, ""))?.[1] === id);
+    const end = /\r?\n$/.exec(index[at])?.[0] ?? "";
+    index[at] = index[at].replace(/\r?\n$/, "").replace(/\|[^|]*\|\s*$/, "| retired |") + end;
+
+    writeFileSync(entryPath, updated);
+    writeFileSync(indexPath, index.join(""));
+    return root ? rel(root, entryPath) : file;
+}
+
+/**
  * One `key: value` line per fact the agent needs to decide whether setup is due.
  * @param {{ root: string, dir: string, scriptPath: string }} opts
  */
@@ -729,7 +828,7 @@ export function statusLines({ root, dir, scriptPath }) {
     ];
 }
 
-const COMMANDS = "commands: status | init | new | find | check | audit | fold";
+const COMMANDS = "commands: status | init | new | find | check | audit | fold | retire";
 const USAGE_NEW = "usage: lessons.mjs new --slug <kebab> --title <t> --area <a> --source <s> --rule <r> --keywords a,b";
 
 function arg(args, name) {
@@ -772,6 +871,9 @@ export function copyRoot(scriptDir) {
 
 /** @returns {number} the exit code */
 function main(argv) {
+    // Every line quotes index cells, and output can land in a CI log. Redact on the way out.
+    const log = (line) => console.log(redact(line));
+    const fail = (line) => console.error(redact(line));
     const [command, ...rest] = argv;
     const scriptPath = fileURLToPath(import.meta.url);
     const scriptDir = dirname(scriptPath);
@@ -781,7 +883,7 @@ function main(argv) {
     const dirRel = rel(root, dir);
 
     if (command === "status") {
-        for (const line of statusLines({ root, dir, scriptPath })) console.log(line);
+        for (const line of statusLines({ root, dir, scriptPath })) log(line);
         return 0;
     }
     if (command === "init") {
@@ -794,14 +896,14 @@ function main(argv) {
             if (stored.trigger === "installed") targets = stored.targets;
         }
         if (!noHook && targets.length === 0) {
-            console.error("usage: lessons.mjs init --targets AGENTS.md,CLAUDE.md | --no-hook [--dir <path>] [--areas a,b] [--fold ask|auto]");
+            fail("usage: lessons.mjs init --targets AGENTS.md,CLAUDE.md | --no-hook [--dir <path>] [--areas a,b] [--fold ask|auto]");
             return 2;
         }
         const areas = list(arg(rest, "areas"));
         const fold = arg(rest, "fold");
         if (fold !== undefined && !["ask", "auto"].includes(fold)) throw new Error(`--fold must be ask or auto: ${fold}`);
         const result = initLessons({ root, dir, targets, noHook, areas: areas.length ? areas : undefined, fold, scriptPath });
-        for (const [label, paths] of Object.entries(result)) for (const p of paths) console.log(`${label}: ${p}`);
+        for (const [label, paths] of Object.entries(result)) for (const p of paths) log(`${label}: ${p}`);
         return 0;
     }
     const cfg = readConfig(dir);
@@ -816,47 +918,47 @@ function main(argv) {
             keywords,
         };
         if (Object.values(input).some((v) => !v) || keywords.length === 0) {
-            console.error(USAGE_NEW);
+            fail(USAGE_NEW);
             return 2;
         }
         if (!existsSync(join(dir, INDEX))) throw new Error(`no index at ${dirRel}/${INDEX}: run init first`);
         const id = createLesson(dir, input, cfg.areas, root);
-        console.log(`${id} created: ${dirRel}/${id}-${input.slug}.md (fill the TODO lines, then run check)`);
+        log(`${id} created: ${dirRel}/${id}-${input.slug}.md (fill the TODO lines, then run check)`);
         return 0;
     }
     if (command === "find") {
         const words = positional(rest);
         if (words.length === 0) {
-            console.error("usage: lessons.mjs find <keyword> [<keyword> ...]");
+            fail("usage: lessons.mjs find <keyword> [<keyword> ...]");
             return 2;
         }
         const rows = findRows(dir, words);
-        if (rows.length === 0) console.log("lessons: no match");
+        if (rows.length === 0) log("lessons: no match");
         for (const row of rows) {
             const folded = FOLDED_RE.exec(row.status);
             const where = folded ? ` → read ${folded[1]}` : "";
             // A retired rule is wrong now. Say so before the rule, so an agent that reads one line stops there.
             const label = row.status === "retired" ? " (retired: do not follow)" : "";
-            console.log(`${row.id} [${row.area}]${label} ${row.rule} (${row.keywords})${where}`);
+            log(`${row.id} [${row.area}]${label} ${row.rule} (${row.keywords})${where}`);
         }
         return 0;
     }
     if (command === "check") {
         const { errors, warnings } = checkLessons(dir, { root, areas: cfg.areas, foldThreshold: cfg.foldThreshold });
         // The fold warning is printed as the `fold:` line below, so skip it here.
-        for (const w of warnings.filter((w) => !w.includes("fold threshold"))) console.log(`warning: ${w}`);
-        for (const e of errors) console.error(`error: ${e}`);
-        console.log(foldLine(dir, cfg));
-        console.log(errors.length === 0 ? `lessons: ok (${entryFiles(dir).length} entries)` : `lessons: ${errors.length} error(s)`);
+        for (const w of warnings.filter((w) => !w.includes("fold threshold"))) log(`warning: ${w}`);
+        for (const e of errors) fail(`error: ${e}`);
+        log(foldLine(dir, cfg));
+        log(errors.length === 0 ? `lessons: ok (${entryFiles(dir).length} entries)` : `lessons: ${errors.length} error(s)`);
         return errors.length === 0 ? 0 : 1;
     }
     if (command === "audit") {
         const rows = auditLessons(dir, { root, citationRoots: cfg.citationRoots });
-        console.log(`lessons: ${rows.length} active (fold threshold ${cfg.foldThreshold})`);
+        log(`lessons: ${rows.length} active (fold threshold ${cfg.foldThreshold})`);
         for (const row of rows) {
-            console.log(`\n${row.id} [${row.area}] ${row.rule}`);
-            console.log(`  guard: ${row.guard || "none"}`);
-            console.log(`  cited in: ${row.citedIn.length > 0 ? row.citedIn.join(", ") : "none"}`);
+            log(`\n${row.id} [${row.area}] ${row.rule}`);
+            log(`  guard: ${row.guard || "none"}`);
+            log(`  cited in: ${row.citedIn.length > 0 ? row.citedIn.join(", ") : "none"}`);
         }
         return 0;
     }
@@ -864,18 +966,30 @@ function main(argv) {
         const [id] = positional(rest);
         const to = arg(rest, "to");
         if (!id || !to) {
-            console.error("usage: lessons.mjs fold <L0NN> --to <owner file>   (write the rule with (L0NN) in the owner file first)");
+            fail("usage: lessons.mjs fold <L0NN> --to <owner file>   (write the rule with (L0NN) in the owner file first)");
             return 2;
         }
         const result = foldLesson({ root, dir, id, to });
-        console.log(`deleted: ${result.deleted}`);
-        console.log(`folded: ${result.folded}`);
+        log(`deleted: ${result.deleted}`);
+        log(`folded: ${result.folded}`);
         const { errors } = checkLessons(dir, { root, areas: cfg.areas, foldThreshold: cfg.foldThreshold });
-        for (const e of errors) console.error(`error: ${e}`);
-        console.log(foldLine(dir, cfg));
+        for (const e of errors) fail(`error: ${e}`);
+        log(foldLine(dir, cfg));
         return errors.length === 0 ? 0 : 1;
     }
-    console.error(COMMANDS);
+    if (command === "retire") {
+        const [id] = positional(rest);
+        const reason = arg(rest, "reason");
+        if (!id || !reason) {
+            fail("usage: lessons.mjs retire <L0NN> --reason <why the rule is wrong now>");
+            return 2;
+        }
+        log(`retired: ${retireLesson({ dir, id, reason, root })}`);
+        const { errors } = checkLessons(dir, { root, areas: cfg.areas, foldThreshold: cfg.foldThreshold });
+        for (const e of errors) fail(`error: ${e}`);
+        return errors.length === 0 ? 0 : 1;
+    }
+    fail(COMMANDS);
     return 2;
 }
 
@@ -894,7 +1008,7 @@ if (isMain()) {
         process.exitCode = main(process.argv.slice(2));
     } catch (error) {
         // Expected failures (bad config, bad input, broken marker) get one line, not a stack trace.
-        console.error(`error: ${error.message}`);
+        console.error(`error: ${redact(error.message)}`);
         process.exitCode = 2;
     }
 }

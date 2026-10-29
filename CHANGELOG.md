@@ -4,6 +4,37 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-10-29
+
+### Added
+
+- `retire <L0NN> --reason "..."`: marks the index row and the entry `retired` and adds the dated
+  `Retired:` line. The file stays.
+- Three eval scenarios with graders: `retire-outdated`, `headless-no-setup`, and `fold-auto` (new
+  fixture `evals/fixtures/fold-auto`). They are not yet part of the measured results in the README.
+
+### Changed
+
+- `find` also searches the lesson files, so error text from a Symptom section turns up. Hits that
+  match more keywords come first.
+- Lesson dates use the local calendar date, not the UTC date.
+
+### Fixed
+
+- `check` fails when the index `README.md` is missing. Before, a deleted index passed as
+  `lessons: ok (0 entries)`.
+- `check` fails on an empty section. Before, it checked only that the heading was there.
+- `check` fails on a `retired` row whose entry has no `Retired: <date> — <reason>` line.
+
+### Security
+
+- `audit` skips files whose real path is outside the repo. A symlinked citation root or Markdown
+  file could make it read files outside the repo.
+- `find`, `audit`, and `check` skip a lesson file that is a symlink out of the lessons folder.
+  `check` fails on it.
+- `check` fails on a token shaped like a GitHub, AWS, OpenAI, Anthropic, or Slack credential, or
+  a private key header, in a lesson file or in the index. No command prints the token: output is redacted.
+
 ## [1.1.0] - 2026-10-24
 
 ### Changed
