@@ -1313,6 +1313,80 @@ fileSymlinkTest("initLessons refuses a lessons file that is a symlink to a file 
     }
 });
 
+fileSymlinkTest("initLessons refuses a lessons file that is a dangling symlink to a path outside the repo, and creates nothing", () => {
+    for (const name of ["config.json", "README.md", "lessons.mjs"]) {
+        withRepo((root) => {
+            const lessons = join(root, "docs", "lessons");
+            initLessons(initOpts(root, lessons, { noHook: true }));
+            const outside = mkdtempSync(join(tmpdir(), "outside-"));
+            try {
+                const target = join(outside, "missing", name);
+                rmSync(join(lessons, name));
+                symlinkSync(target, join(lessons, name));
+
+                assert.throws(
+                    () => initLessons(initOpts(root, lessons, { noHook: true })),
+                    new RegExp(`docs/lessons/${name.replace(".", "\\.")} resolves outside the repo`),
+                    name,
+                );
+                assert.equal(existsSync(target), false, name);
+            } finally {
+                rmSync(outside, { recursive: true, force: true });
+            }
+        });
+    }
+});
+
+fileSymlinkTest("initLessons refuses a target that is a dangling symlink to a path outside the repo", () => {
+    withRepo((root) => {
+        const outside = mkdtempSync(join(tmpdir(), "outside-"));
+        try {
+            const target = join(outside, "missing", "AGENTS.md");
+            symlinkSync(target, join(root, "AGENTS.md"));
+            assert.throws(
+                () => initLessons(initOpts(root, join(root, "docs", "lessons"), { targets: ["AGENTS.md"] })),
+                /AGENTS\.md resolves outside the repo/,
+            );
+            assert.equal(existsSync(target), false);
+        } finally {
+            rmSync(outside, { recursive: true, force: true });
+        }
+    });
+});
+
+fileSymlinkTest("new, retire, and fold refuse an index that is a symlink to another file in the repo", () => {
+    foldRepo((root, lessons) => {
+        const shared = join(root, "docs", "shared-index.md");
+        writeFileSync(shared, readFileSync(join(lessons, "README.md"), "utf8"));
+        rmSync(join(lessons, "README.md"));
+        symlinkSync(shared, join(lessons, "README.md"));
+        writeFileSync(join(root, "AGENTS.md"), "(L001)\n");
+        const before = readFileSync(shared, "utf8");
+
+        assert.equal(run(["new", "--slug", "y", "--title", "Y", "--area", "shell", "--source", "user", "--rule", "Do y.", "--keywords", "y"], root).code, 2);
+        assert.equal(run(["retire", "L001", "--reason", "No longer true."], root).code, 2);
+        assert.equal(run(["fold", "L001", "--to", "AGENTS.md"], root).code, 2);
+        assert.throws(() => retireLesson({ root, dir: lessons, id: "L001", reason: "No longer true." }), /resolves outside the lessons folder/);
+        assert.equal(readFileSync(shared, "utf8"), before);
+        assert.ok(existsSync(join(lessons, "L001-quote-heredocs.md")));
+    });
+});
+
+fileSymlinkTest("initLessons refuses a lessons file that is a symlink to another file in the repo", () => {
+    withRepo((root) => {
+        const lessons = join(root, "docs", "lessons");
+        initLessons(initOpts(root, lessons, { noHook: true }));
+        const shared = join(root, "docs", "shared-config.json");
+        writeFileSync(shared, readFileSync(join(lessons, "config.json"), "utf8"));
+        rmSync(join(lessons, "config.json"));
+        symlinkSync(shared, join(lessons, "config.json"));
+        const before = readFileSync(shared, "utf8");
+
+        assert.throws(() => initLessons(initOpts(root, lessons, { noHook: true, fold: "auto" })), /docs\/lessons\/config\.json resolves outside the lessons folder/);
+        assert.equal(readFileSync(shared, "utf8"), before);
+    });
+});
+
 test("areas refuse | and line breaks in init, config.json, and new", () => {
     withRepo((root) => {
         assert.throws(() => initLessons(initOpts(root, join(root, "docs", "lessons"), { noHook: true, areas: ["api|web"] })), /area must not contain \| or a line break/);

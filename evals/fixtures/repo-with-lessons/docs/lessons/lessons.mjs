@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // lessons-learned helper. One file per lesson in the lessons folder, one index row in its README.md.
 // Zero dependencies: Node >= 22 built-ins only. Run `node lessons.mjs` for the command list.
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const VERSION = "1.2.0";
+export const VERSION = "1.2.1";
 
 export const DEFAULT_AREAS = ["code", "test", "security", "review", "process", "shell", "tooling", "docs"];
 export const SOURCES = ["execution", "verify", "review", "security", "browser", "user"];
@@ -339,35 +339,59 @@ export function insideRepo(root, path) {
  */
 const SAFE_DIR_RE = /^[A-Za-z0-9._/-]+$/;
 
+/** True when `path` exists as a directory entry, even a symlink whose target is missing. */
+function entryExists(path) {
+    try {
+        lstatSync(path);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 /**
- * True when the real path of `path` (or of its nearest existing parent) is inside the real repo root.
- * This catches a symlink that points outside the repo.
+ * True when the real path of `path` (or of its nearest existing parent) is inside the real `base`.
+ * A dangling symlink on the way is false: its target cannot be checked, and a write would follow it.
  */
-export function realInsideRepo(root, path) {
+export function realInside(base, path) {
     let existing = path;
     while (!existsSync(existing)) {
+        if (entryExists(existing)) return false;
         const parent = dirname(existing);
         if (parent === existing) return false;
         existing = parent;
     }
-    const realRoot = realpathSync(root);
-    const relPath = relative(realRoot, realpathSync(existing));
+    const relPath = relative(realpathSync(base), realpathSync(existing));
     return !relPath.startsWith("..") && !isAbsolute(relPath);
 }
 
+/** True when the real path of `path` is inside the real repo root. This catches a symlink that points outside the repo. */
+export function realInsideRepo(root, path) {
+    return realInside(root, path);
+}
+
 /**
- * Throw unless the lessons folder and every file in it stay inside the repo. Run it before any command
- * that writes, so a symlinked file cannot send a write outside the repo.
+ * Throw unless `dir/name` stays inside the repo and, when it exists, inside the lessons folder. A
+ * symlink to another repo file would send a lessons write to a file nobody chose (`verb` names the writer).
+ */
+function assertLessonsFile(root, dir, name, verb) {
+    const dirRel = rel(root, dir);
+    const path = join(dir, name);
+    if (!realInsideRepo(root, path)) throw new Error(`${dirRel}/${name} resolves outside the repo (a symlink); ${verb} does not write there`);
+    if (entryExists(path) && !realInside(dir, path)) {
+        throw new Error(`${dirRel}/${name} resolves outside the lessons folder (a symlink); ${verb} does not write there`);
+    }
+}
+
+/**
+ * Throw unless the lessons folder stays inside the repo and every file in it stays inside the folder.
+ * Run it before any command that writes, so a symlinked file cannot send a write anywhere else.
  */
 export function assertLessonsInRepo(root, dir) {
     const dirRel = rel(root, dir);
     if (!realInsideRepo(root, dir)) throw new Error(`${dirRel} resolves outside the repo (a symlink); the script does not write there`);
     if (!existsSync(dir)) return;
-    for (const name of readdirSync(dir)) {
-        if (!realInsideRepo(root, join(dir, name))) {
-            throw new Error(`${dirRel}/${name} resolves outside the repo (a symlink); the script does not write there`);
-        }
-    }
+    for (const name of readdirSync(dir)) assertLessonsFile(root, dir, name, "the script");
 }
 
 /** Repo-relative path with forward slashes, so output reads the same on every OS. */
@@ -581,9 +605,7 @@ export function initLessons({ root, dir, targets, noHook, areas, fold, scriptPat
     if (!realInsideRepo(root, dir)) throw new Error(`${dirRel} resolves outside the repo (a symlink); choose a real folder`);
     if (areas?.some((a) => /[|\r\n]/.test(a))) throw new Error("area must not contain | or a line break");
     // Each file init may write must also stay in the repo: a symlinked file inside a real folder is a second way out.
-    for (const name of [INDEX, CONFIG, "lessons.mjs"]) {
-        if (!realInsideRepo(root, join(dir, name))) throw new Error(`${dirRel}/${name} resolves outside the repo (a symlink); init does not write there`);
-    }
+    for (const name of [INDEX, CONFIG, "lessons.mjs"]) assertLessonsFile(root, dir, name, "init");
     // Never adopt a folder that holds other files: init would overwrite its config.json and README.md.
     if (existsSync(dir) && readdirSync(dir).length > 0 && !isLessonsFolder(dir)) {
         throw new Error(`${dirRel} is not a lessons folder (no lessons config.json or index); choose an empty or new folder`);
