@@ -9,6 +9,12 @@
   `<!-- lessons-learned:end -->` markers.
 
 It refuses a lessons folder, a target, a citation root, or a folded destination outside the repo.
+`audit` never opens a citation root or file whose real path is outside the repo, so a symlink cannot
+widen what it reads.
+
+Lessons are committed. `check` fails when a lesson holds a token shaped like a GitHub, AWS, OpenAI,
+Anthropic, or Slack credential, or a private key header, in a lesson file or the index. No command prints the token: output is redacted. If it
+fires, remove the token and rotate it: it may already be in git history.
 It makes no network calls and runs no other programs.
 
 ## Reporting a vulnerability

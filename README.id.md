@@ -193,7 +193,9 @@ Lesson sebaiknya ditulis dalam bahasa Inggris supaya semua model bisa membacanya
 
 ## Mencari lesson
 
-`find` mencocokkan kata kunci, jadi sebuah lesson hanya ketemu kalau agent mencari kata yang tepat.
+`find` mencocokkan kata kunci di index dan di setiap file lesson, jadi teks error dari Symptom juga
+ketemu. Lesson yang cocok dengan lebih banyak kata muncul lebih dulu. Lesson tetap hanya ketemu kalau
+agent mencari kata yang ada di dalamnya.
 Karena itulah fold penting. Aturan yang sudah di-fold tinggal di `AGENTS.md` atau sebuah test, tempat
 agent membacanya tanpa perlu mencari. Tulis kata kunci yang baik: nama tool, potongan teks error,
 dan id aturan.
@@ -212,10 +214,11 @@ node docs/lessons/lessons.mjs check          # validasi semua lesson
 | `status` | Menunjukkan apakah setup sudah selesai. |
 | `init` | Menyiapkan folder dan catatan di `AGENTS.md` / `CLAUDE.md`. Aman dijalankan ulang. |
 | `new` | Membuat file lesson baru. |
-| `find` | Mencari lesson berdasarkan kata kunci. |
-| `check` | Memvalidasi semua lesson. Keluar dengan kode 1 kalau ada masalah, jadi bisa dipakai sebagai gerbang commit atau CI. |
+| `find` | Mencari lesson berdasarkan kata kunci, termasuk teks error di file lesson. Hasil paling cocok di atas. |
+| `check` | Memvalidasi semua lesson. Gagal kalau index hilang, ada bagian kosong, atau ada token yang mirip secret. Keluar dengan kode 1 kalau ada masalah, jadi bisa dipakai sebagai gerbang commit atau CI. |
 | `audit` | Menampilkan lesson aktif dan di mana aturannya dipakai. Fold dimulai dari sini. |
 | `fold` | Memindahkan satu lesson setelah aturannya terpasang: `fold L004 --to AGENTS.md`. Menolak kalau `AGENTS.md` belum menyebut `L004`. |
+| `retire` | Menandai lesson yang aturannya kini salah: `retire L004 --reason "vitest 3 sudah memperbaikinya"`. Filenya tetap ada. |
 
 **Cegah commit yang bermasalah.** Jalankan pengecekan sebelum setiap commit:
 

@@ -10,7 +10,7 @@ description: >-
 license: MIT
 metadata:
   author: mikaeladityan
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Lessons Learned
@@ -169,6 +169,8 @@ finding, and the author writes it.
 | Before a review round | `find review`. Honor the hits in the review prompt. |
 | Before every commit | `check`. |
 
+`find` searches the index and the lesson files. Hits that match more words come first.
+
 A folded hit prints `→ read <file>`. Its rule now lives in that file, so read that file. A retired
 hit prints `(retired: do not follow)`. Its rule is wrong now.
 
@@ -208,11 +210,14 @@ The folded row stays in the index:
 
 ## Retire
 
-When a tool or rule change makes a lesson wrong:
+When a tool or rule change makes a lesson wrong, run:
 
-1. Set its index `Status` to `retired`.
-2. Add a `Retired: <date> — <reason>` line under the title.
-3. Keep the file.
+```bash
+node <lessons folder>/lessons.mjs retire <L0NN> --reason "<why the rule is wrong now>"
+```
+
+It sets the index `Status` to `retired`, adds a `Retired: <date> — <reason>` line under the title,
+and keeps the file.
 
 A retired lesson does not count toward the fold threshold.
 
@@ -231,12 +236,15 @@ In the user's repo (default folder shown):
 **`check` fails on:**
 - an index or entry gap;
 - an id used twice (two branches added the same id; renumber one);
-- a missing section;
+- a missing index;
+- a missing or empty section;
 - `TODO` text;
 - a rule over 20 words or with two paragraphs;
 - an index rule that differs from the entry;
 - a sentence over 22 words;
 - an area outside the config;
+- a retired lesson without its `Retired:` line;
+- a token shaped like a credential (it names the file, not the token; remove it and rotate it);
 - a folded row with a file left, with no owner file, or with an owner file that does not cite the id.
 
 **`check` warns on:**
@@ -249,5 +257,5 @@ In this skill:
 - `references/fold.md`: the full fold procedure and owner-file guidance.
 - `references/agent-files.md`: which agent reads which instruction file, the block text, and how
   to remove it.
-- `scripts/lessons.mjs`: commands `status`, `init`, `new`, `find`, `check`, `audit`, `fold`. Node ≥ 22,
+- `scripts/lessons.mjs`: commands `status`, `init`, `new`, `find`, `check`, `audit`, `fold`, `retire`. Node ≥ 22,
   zero dependencies.

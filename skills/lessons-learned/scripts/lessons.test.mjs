@@ -29,7 +29,9 @@ import {
     renderBlock,
     renderEntry,
     resolveDir,
+    retireLesson,
     statusLines,
+    today,
     upsertBlock,
     VERSION,
     writeConfig,
@@ -268,6 +270,8 @@ test("the check does not warn at the threshold, and counts only active rows", ()
             .replace(/(\| L001 \|.*)\| active \|/, "$1| folded → SKILL.md |")
             .replace(/(\| L002 \|.*)\| active \|/, "$1| retired |"),
     );
+    const retired = join(dir, "L002-lesson-1.md");
+    writeFileSync(retired, readFileSync(retired, "utf8").replace("\n", "\n\nRetired: 2026-10-29 — test\n"));
 
     const result = checkLessons(dir, { root: dir });
 
@@ -1438,4 +1442,279 @@ test("indented index rows still count for ids, duplicates, find, and fold", () =
         assert.deepEqual(readIndexRows(lessons).map((r) => r.status), ["folded → SKILL.md", "folded → SKILL.md"]);
         assert.deepEqual(checkLessons(lessons, { root }).errors, []);
     });
+});
+
+// ---- v1.2.0: Codex validation round ----
+
+test("audit does not read a citation root that is a symlink to a folder outside the repo", () => {
+    withRepo((root) => {
+        const outside = mkdtempSync(join(tmpdir(), "outside-"));
+        try {
+            const lessons = join(root, "docs", "lessons");
+            initLessons(initOpts(root, lessons, { noHook: true }));
+            createLesson(lessons, input);
+            writeFileSync(join(outside, "outside.md"), "Quote it (L001).\n");
+            symlinkSync(outside, join(root, "docs", "external"), "junction");
+
+            const rows = auditLessons(lessons, { root, citationRoots: ["docs/external"] });
+
+            assert.deepEqual(rows[0].citedIn, []);
+        } finally {
+            rmSync(outside, { recursive: true, force: true });
+        }
+    });
+});
+
+fileSymlinkTest("audit does not read a Markdown file that is a symlink to a file outside the repo", () => {
+    withRepo((root) => {
+        const outside = mkdtempSync(join(tmpdir(), "outside-"));
+        try {
+            const lessons = join(root, "docs", "lessons");
+            initLessons(initOpts(root, lessons, { noHook: true }));
+            createLesson(lessons, input);
+            writeFileSync(join(outside, "outside.md"), "Quote it (L001).\n");
+            symlinkSync(join(outside, "outside.md"), join(root, "docs", "linked.md"));
+
+            const rows = auditLessons(lessons, { root });
+
+            assert.deepEqual(rows[0].citedIn, []);
+        } finally {
+            rmSync(outside, { recursive: true, force: true });
+        }
+    });
+});
+
+test("check fails when the index is missing", () => {
+    rmSync(join(dir, "README.md"));
+
+    assert.ok(checkLessons(dir).errors.some((e) => e.includes("index") && e.includes("missing")));
+});
+
+test("check fails on an empty section, even when its heading is there", () => {
+    createLesson(dir, input);
+    const file = completed();
+    writeFileSync(file, readFileSync(file, "utf8").replace(/## Cause\n\n[^\n]*\n/, "## Cause\n\n"));
+
+    assert.ok(checkLessons(dir).errors.some((e) => e.includes('section "Cause" is empty')), checkLessons(dir).errors.join("\n"));
+});
+
+test("check fails on a secret-shaped token and does not print it", () => {
+    const token = `ghp_${"A".repeat(36)}`;
+    for (const secret of [token, `AKIA${"B".repeat(16)}`, `sk-ant-api03-${"aB3".repeat(10)}`, `xoxb-${"1".repeat(12)}`, "-----BEGIN RSA PRIVATE KEY-----"]) {
+        createLesson(dir, input);
+        const file = completed();
+        writeFileSync(file, readFileSync(file, "utf8").replace("## Cause\n\nDone", `## Cause\n\nThe log held ${secret} in it.`));
+
+        const errors = checkLessons(dir).errors;
+
+        assert.ok(errors.some((e) => e.includes("secret")), `${secret}: ${errors.join("\n")}`);
+        assert.ok(!errors.join("\n").includes(secret), "the error must not repeat the secret");
+        rmSync(file);
+        writeFileSync(join(dir, "README.md"), INDEX_HEAD);
+    }
+});
+
+test("check does not flag secret-like words in plain prose", () => {
+    createLesson(dir, { ...input, rule: "Pin sk-learn and read the ghp_ prefix docs." });
+    completed();
+
+    assert.deepEqual(checkLessons(dir).errors, []);
+});
+
+test("findRows matches text in the entry body, such as error text in the Symptom", () => {
+    createLesson(dir, input);
+    const file = completed();
+    writeFileSync(file, readFileSync(file, "utf8").replace("## Symptom\n\nDone", "## Symptom\n\nERR_MODULE_NOT_FOUND on import."));
+
+    assert.deepEqual(findRows(dir, ["err_module_not_found"]).map((r) => r.id), ["L001"]);
+});
+
+test("findRows ranks rows that match more keywords first", () => {
+    createLesson(dir, { ...input, slug: "one", keywords: ["vitest"], rule: "Run the vitest filter." });
+    createLesson(dir, { ...input, slug: "two", keywords: ["vitest", "watch"], rule: "Do not start vitest in watch mode." });
+
+    assert.deepEqual(findRows(dir, ["vitest", "watch"]).map((r) => r.id), ["L002", "L001"]);
+});
+
+test("check fails on a retired row whose entry has no Retired line", () => {
+    createLesson(dir, input);
+    completed();
+    const index = join(dir, "README.md");
+    writeFileSync(index, readFileSync(index, "utf8").replace("| active |", "| retired |"));
+
+    assert.ok(checkLessons(dir).errors.some((e) => e.includes("Retired:")), checkLessons(dir).errors.join("\n"));
+});
+
+test("retireLesson marks the row and the entry retired with a dated reason, and keeps the check green", () => {
+    createLesson(dir, input);
+    completed();
+
+    retireLesson({ dir, id: "L001", reason: "the build now quotes heredocs", date: "2026-10-29" });
+
+    assert.equal(readIndexRows(dir)[0].status, "retired");
+    const entry = readFileSync(join(dir, "L001-quote-heredocs.md"), "utf8");
+    assert.ok(entry.includes("\nRetired: 2026-10-29 — the build now quotes heredocs\n"), entry);
+    assert.ok(entry.includes("Status: retired"), entry);
+    assert.deepEqual(checkLessons(dir).errors, []);
+});
+
+test("retireLesson refuses an unknown id, a lesson that is not active, and an empty reason", () => {
+    createLesson(dir, input);
+    completed();
+
+    assert.throws(() => retireLesson({ dir, id: "L009", reason: "x" }), /not in the index/);
+    assert.throws(() => retireLesson({ dir, id: "L001", reason: " " }), /reason/);
+    retireLesson({ dir, id: "L001", reason: "gone" });
+    assert.throws(() => retireLesson({ dir, id: "L001", reason: "again" }), /not active/);
+});
+
+test("CLI retire retires a lesson and find labels it", () => {
+    withRepo((root) => {
+        run(["init", "--no-hook"], root);
+        const lessons = join(root, "docs", "lessons");
+        createLesson(lessons, input);
+        fill(join(lessons, "L001-quote-heredocs.md"));
+
+        const r = run(["retire", "L001", "--reason", "the build now quotes heredocs"], root);
+
+        assert.equal(r.code, 0, r.stderr);
+        assert.ok(run(["find", "heredoc"], root).stdout.includes("(retired: do not follow)"));
+        assert.equal(run(["check"], root).code, 0);
+    });
+});
+
+test("today gives the local calendar date, not the UTC one", () => {
+    const at = new Date(2026, 9, 29, 0, 30);
+
+    assert.equal(today(at), "2026-10-29");
+});
+
+test("check fails on a secret in the index and never prints it, even in a malformed row", () => {
+    const token = `ghp_${"A".repeat(36)}`;
+    createLesson(dir, input);
+    completed();
+    const index = join(dir, "README.md");
+    writeFileSync(index, readFileSync(index, "utf8").replace("heredoc, backtick", `heredoc, ${token}`) + `| L009 | ${token} |\n`);
+
+    const errors = checkLessons(dir).errors;
+
+    assert.ok(errors.some((e) => e.includes("secret-shaped token in README.md")), errors.join("\n"));
+    assert.ok(!errors.join("\n").includes(token), errors.join("\n"));
+});
+
+test("check does not flag a long hyphenated sk- word in prose", () => {
+    createLesson(dir, input);
+    const file = completed();
+    writeFileSync(file, readFileSync(file, "utf8").replace("## Cause\n\nDone", "## Cause\n\nUse sk-learn-feature-selection here."));
+
+    assert.deepEqual(checkLessons(dir).errors, []);
+});
+
+test("audit skips a citation root outside the repo without listing it", () => {
+    withRepo((root) => {
+        const outside = mkdtempSync(join(tmpdir(), "outside-"));
+        try {
+            const lessons = join(root, "docs", "lessons");
+            initLessons(initOpts(root, lessons, { noHook: true }));
+            createLesson(lessons, input);
+            symlinkSync(outside, join(root, "external"), "junction");
+            rmSync(outside, { recursive: true, force: true });
+            mkdirSync(outside);
+            writeFileSync(join(outside, "x.md"), "(L001)\n");
+
+            assert.deepEqual(auditLessons(lessons, { root, citationRoots: ["external"] })[0].citedIn, []);
+            // A root that resolves outside is never opened: an unreadable folder there must not crash audit.
+            if (process.platform !== "win32") {
+                spawnSync("chmod", ["000", outside]);
+                assert.doesNotThrow(() => auditLessons(lessons, { root, citationRoots: ["external"] }));
+                spawnSync("chmod", ["755", outside]);
+            }
+        } finally {
+            spawnSync("chmod", ["755", outside]);
+            rmSync(outside, { recursive: true, force: true });
+        }
+    });
+});
+
+test("check never prints a secret from an area or a folded destination cell", () => {
+    const token = `ghp_${"A".repeat(36)}`;
+    writeFileSync(join(dir, "README.md"), `${INDEX_HEAD}| L001 | 2026-10-20 | ${token} | Rule. | k | active |\n| L002 | 2026-10-20 | shell | Rule. | k | folded → ${token} |\n`);
+
+    const out = checkLessons(dir);
+
+    assert.ok(!JSON.stringify(out).includes(token), JSON.stringify(out));
+});
+
+test("no CLI command prints a secret from an index cell", () => {
+    withRepo((root) => {
+        const token = `ghp_${"A".repeat(36)}`;
+        run(["init", "--no-hook"], root);
+        const lessons = join(root, "docs", "lessons");
+        createLesson(lessons, input);
+        fill(join(lessons, "L001-quote-heredocs.md"));
+        const index = join(lessons, "README.md");
+        writeFileSync(index, readFileSync(index, "utf8").replace("heredoc, backtick", `heredoc, ${token}`) + `| L002 | 2026-10-20 | shell | R. | k | folded → ${token} |\n`);
+
+        for (const args of [["find", "heredoc"], ["audit"], ["check"], ["fold", "L002", "--to", token], ["retire", "L002", "--reason", "x"]]) {
+            const r = run(args, root);
+            assert.ok(!(r.stdout + r.stderr).includes(token), `${args[0]}: ${r.stdout}${r.stderr}`);
+        }
+    });
+});
+
+test("check catches a segmented sk- key with no digit run and redacts all of it", () => {
+    const segmented = `sk-ant-api03-${"AbCdEfGhJk-".repeat(8)}AbCdEfG1`;
+    const tailed = `sk-ant-api03-${"aB3".repeat(10)}-${"SensitiveTail_".repeat(4)}`;
+    createLesson(dir, input);
+    const file = completed();
+    writeFileSync(file, readFileSync(file, "utf8").replace("## Cause\n\nDone", `## Cause\n\nThe log held ${segmented} in it.`));
+    writeFileSync(join(dir, "README.md"), readFileSync(join(dir, "README.md"), "utf8") + `| L009 | ${tailed} |\n`);
+
+    const out = checkLessons(dir).errors.join("\n");
+
+    assert.ok(out.includes("secret-shaped token in L001-quote-heredocs.md"), out);
+    assert.ok(!out.includes("SensitiveTail") && !out.includes("AbCdEfGhJk"), out);
+});
+
+fileSymlinkTest("find, audit, and check do not read an entry file that is a symlink outside the lessons folder", () => {
+    withRepo((root) => {
+        const outside = mkdtempSync(join(tmpdir(), "outside-"));
+        try {
+            run(["init", "--no-hook"], root);
+            const lessons = join(root, "docs", "lessons");
+            createLesson(lessons, input);
+            const entry = join(lessons, "L001-quote-heredocs.md");
+            writeFileSync(join(outside, "x.md"), readFileSync(entry, "utf8").replaceAll("TODO", "outside_only_marker_9182"));
+            rmSync(entry);
+            symlinkSync(join(outside, "x.md"), entry);
+
+            assert.deepEqual(findRows(lessons, ["outside_only_marker_9182"]), []);
+            assert.equal(auditLessons(lessons, { root })[0].guard, "");
+            assert.ok(checkLessons(lessons, { root }).errors.some((e) => e.includes("outside the lessons folder")));
+        } finally {
+            rmSync(outside, { recursive: true, force: true });
+        }
+    });
+});
+
+test("the secret scan stays fast on a long run of sk- prefixes", () => {
+    createLesson(dir, input);
+    const file = completed();
+    writeFileSync(file, readFileSync(file, "utf8") + `\n${"sk-".repeat(20000)}\n`);
+
+    const start = Date.now();
+    checkLessons(dir);
+
+    assert.ok(Date.now() - start < 500, `took ${Date.now() - start} ms`);
+});
+
+test("retireLesson refuses a duplicate entry file and changes nothing", () => {
+    createLesson(dir, input);
+    const file = completed();
+    writeFileSync(join(dir, "L001-duplicate.md"), readFileSync(file, "utf8"));
+    const before = readFileSync(join(dir, "README.md"), "utf8");
+
+    assert.throws(() => retireLesson({ dir, id: "L001", reason: "gone" }), /more than once/);
+    assert.equal(readFileSync(join(dir, "README.md"), "utf8"), before);
+    assert.ok(!readFileSync(join(dir, "L001-duplicate.md"), "utf8").includes("Retired:"));
 });

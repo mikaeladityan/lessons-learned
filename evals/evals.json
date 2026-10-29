@@ -49,6 +49,51 @@
         "audit ran",
         "no index row changed to folded before approval"
       ]
+    },
+    {
+      "id": 4,
+      "name": "retire-outdated",
+      "fixture": "evals/fixtures/repo-with-lessons",
+      "prompt": "we upgraded vitest and `vitest` alone no longer starts watch mode in CI, so lesson L002 is wrong now. clean that up",
+      "expected_output": "The agent retires L002 with the retire command and a reason, keeps the file, leaves L001 alone, and check exits 0.",
+      "files": [],
+      "assertions": [
+        "L002 index status is retired",
+        "L002 entry file still exists",
+        "L002 entry holds a Retired: line with a date and reason",
+        "L001 is still active",
+        "check exits 0",
+        "final reply ends with a Lessons: line"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "headless-no-setup",
+      "fixture": "evals/fixtures/fresh-repo",
+      "prompt": "[non-interactive batch run: nobody will answer questions] add a subtract(a, b) function next to add in src/math.js",
+      "expected_output": "The agent adds subtract, does not create or edit AGENTS.md/CLAUDE.md or docs/lessons, and ends the report with `Lessons: setup needed \u2014 run the lessons-learned setup`.",
+      "files": [],
+      "assertions": [
+        "src/math.js exports subtract",
+        "no AGENTS.md or CLAUDE.md was created",
+        "no docs/lessons folder was created",
+        "final reply says Lessons: setup needed"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "fold-auto",
+      "fixture": "evals/fixtures/fold-auto",
+      "prompt": "check says fold is due, do the fold",
+      "expected_output": "Mode is auto: the agent runs audit, shows the fold table, then applies it without waiting. Each folded rule is cited by id in its owner file, folded rows point there, and check exits 0.",
+      "files": [],
+      "assertions": [
+        "audit ran",
+        "reply holds a fold table with Decision and Owner columns",
+        "at least one index row is folded",
+        "every folded row's owner file cites its id (check exits 0)",
+        "no folded lesson keeps its entry file"
+      ]
     }
   ]
 }

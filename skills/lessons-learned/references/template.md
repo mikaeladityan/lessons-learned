@@ -80,5 +80,6 @@ a different model with less context.
   - Use repo-relative paths.
   - Use roles: "the reviewer", "the user".
   - `check` warns on `/Users/`, `/home/`, and `C:\Users\`.
+  - `check` fails on a token shaped like a credential. Replace it with `<redacted>`, then rotate it.
 - **Keywords are what a future agent would search for:** the tool name, a fragment of the error,
   a rule id.
