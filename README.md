@@ -262,8 +262,17 @@ With a copy at `docs/lessons/lessons.mjs`, every agent, every teammate, and CI r
 <details>
 <summary><b>How do I update it?</b></summary>
 
-Run `npx skills update`. The next time your agent runs `status`, it sees the old copy and updates
-it. It keeps your earlier choices.
+1. Run `npx skills update`. This updates the skill in your agent's skills folder.
+2. The next time the skill runs, `status` prints `setup: update`. The agent then runs `init`, which
+   updates `docs/lessons/lessons.mjs` and the note in `AGENTS.md` / `CLAUDE.md`. It keeps your
+   earlier choices. To do it yourself, run the skill copy:
+   `node <skill folder>/scripts/lessons.mjs init`.
+3. Commit the changed files. Teammates and CI use the repo copy, so they get the new version only
+   after this commit.
+
+**`check` fails after an update?** A new version can add checks. Read the `error:` lines. Each one names
+the lesson and what is wrong. The [changelog](CHANGELOG.md) lists every new check. For
+example, 1.2.0 fails on an empty section and on a retired lesson without its `Retired:` line.
 
 </details>
 

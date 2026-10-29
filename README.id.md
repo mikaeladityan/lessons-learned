@@ -269,8 +269,18 @@ yang sama.
 <details>
 <summary><b>Bagaimana cara memperbaruinya?</b></summary>
 
-Jalankan `npx skills update`. Saat agent menjalankan `status` berikutnya, ia melihat salinan yang
-lama dan memperbaruinya. Pilihan Anda sebelumnya tetap dipakai.
+1. Jalankan `npx skills update`. Ini memperbarui skill di folder skill agent Anda.
+2. Saat skill berjalan lagi, `status` mencetak `setup: update`. Agent lalu menjalankan `init`, yang
+   memperbarui `docs/lessons/lessons.mjs` dan catatan di `AGENTS.md` / `CLAUDE.md`. Pilihan Anda
+   sebelumnya tetap dipakai. Untuk melakukannya sendiri, jalankan salinan skill:
+   `node <folder skill>/scripts/lessons.mjs init`.
+3. Commit file yang berubah. Rekan tim dan CI memakai salinan di repo, jadi mereka baru mendapat
+   versi baru setelah commit ini.
+
+**`check` gagal setelah update?** Versi baru bisa menambah pengecekan. Baca baris `error:`. Setiap
+baris menyebut lesson-nya dan apa yang salah. [Changelog](CHANGELOG.md) mencatat setiap
+pengecekan baru. Contohnya, 1.2.0 gagal pada bagian yang kosong dan pada lesson retired tanpa baris
+`Retired:`.
 
 </details>
 
