@@ -28,10 +28,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Security
 
-- `audit` skips files whose real path is outside the repo. A symlinked citation root or Markdown
-  file could make it read files outside the repo.
-- `find`, `audit`, and `check` skip a lesson file that is a symlink out of the lessons folder.
-  `check` fails on it.
+- `audit` never opens a citation root or Markdown file whose real path is outside the repo. Before,
+  a symlinked citation root or Markdown file could make it read files outside the repo.
+- `find`, `audit`, `check`, `fold`, and `retire` skip a lesson file that is a symlink out of the
+  lessons folder. `check` fails on it.
 - `check` fails on a token shaped like a GitHub, AWS, OpenAI, Anthropic, or Slack credential, or
   a private key header, in a lesson file or in the index. No command prints the token: output is redacted.
 
