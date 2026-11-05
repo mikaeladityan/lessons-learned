@@ -1,6 +1,6 @@
 {
   "name": "lessons-learned",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "Turns AI agent mistakes into lessons in your repo that every agent reads before it works again.",
   "author": {
     "name": "mikaeladityan",

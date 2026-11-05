@@ -1,6 +1,6 @@
 {
   "name": "lessons-learned",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "private": true,
   "description": "An Agent Skill that turns AI agent mistakes into lessons every agent reads before it works again.",
   "type": "module",
