@@ -5,7 +5,7 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSy
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const VERSION = "1.2.1";
+export const VERSION = "1.2.2";
 
 export const DEFAULT_AREAS = ["code", "test", "security", "review", "process", "shell", "tooling", "docs"];
 export const SOURCES = ["execution", "verify", "review", "security", "browser", "user"];
@@ -361,7 +361,17 @@ export function realInside(base, path) {
         if (parent === existing) return false;
         existing = parent;
     }
-    const relPath = relative(realpathSync(base), realpathSync(existing));
+    // A path that cannot be resolved (an unreadable symlink target throws EACCES on Bun, not on
+    // Node) is treated like a dangling symlink: its target cannot be checked, so it is outside.
+    let realBase;
+    let realExisting;
+    try {
+        realBase = realpathSync(base);
+        realExisting = realpathSync(existing);
+    } catch {
+        return false;
+    }
+    const relPath = relative(realBase, realExisting);
     return !relPath.startsWith("..") && !isAbsolute(relPath);
 }
 

@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-05
+
+### Fixed
+
+- `realInside` let `realpathSync` throw when a symlink target exists but cannot be read (Bun
+  throws `EACCES`; Node resolves it), so `audit` crashed on a citation root it was meant to
+  skip. An unresolvable path is now treated like a dangling symlink: outside the repo, never
+  opened. Found by the existing test `audit skips a citation root outside the repo without
+  listing it` under `bun test`.
+
 ### Changed
 
 - README FAQ "How do I update it?": the steps to update the repo copy and commit it, and what to do
