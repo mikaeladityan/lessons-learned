@@ -56,6 +56,16 @@ like a flaky network call, don't become lessons.
 > [!TIP]
 > Install for specific agents with `-a claude-code -a codex`. Install for all your projects with `-g`.
 
+**Claude Code plugin.** You can also install it from this repo's plugin marketplace. In Claude Code, run:
+
+```text
+/plugin marketplace add mikaeladityan/lessons-learned
+/plugin install lessons-learned@lessons-learned
+```
+
+On Claude Code 2.1.275 or later, one line does both:
+`/plugin install lessons-learned --marketplace mikaeladityan/lessons-learned`.
+
 ## Why it works
 
 **It lives in your repo, not in a chat.**
@@ -188,6 +198,7 @@ The **Guard** says what stops a repeat. That can be a test, a lint, or a line in
 | [`references/fold.md`](skills/lessons-learned/references/fold.md) | How to move rules into their owner files, with an approval table. |
 | [`references/agent-files.md`](skills/lessons-learned/references/agent-files.md) | Which agent reads which file, and the exact note `init` writes. |
 | [`scripts/lessons.mjs`](skills/lessons-learned/scripts/lessons.mjs) | The CLI. One plain JavaScript file, zero dependencies. |
+| [`.claude-plugin/`](.claude-plugin) | The Claude Code plugin manifest and the marketplace that lists it. |
 
 ## Design principles
 
@@ -275,7 +286,8 @@ With a copy at `docs/lessons/lessons.mjs`, every agent, every teammate, and CI r
 <details>
 <summary><b>How do I update it?</b></summary>
 
-1. Run `npx skills update`. This updates the skill in your agent's skills folder.
+1. Run `npx skills update`. This updates the skill in your agent's skills folder. If you installed
+   the Claude Code plugin, run `/plugin marketplace update lessons-learned` instead.
 2. The next time the skill runs, `status` prints `setup: update`. The agent then runs `init`, which
    updates `docs/lessons/lessons.mjs` and the note in `AGENTS.md` / `CLAUDE.md`. It keeps your
    earlier choices. To do it yourself, run the skill copy:

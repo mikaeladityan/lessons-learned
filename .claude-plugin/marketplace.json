@@ -1,0 +1,16 @@
+{
+  "name": "lessons-learned",
+  "description": "The lessons-learned skill: a repo memory of agent mistakes that every agent shares.",
+  "owner": {
+    "name": "mikaeladityan",
+    "url": "https://github.com/mikaeladityan"
+  },
+  "plugins": [
+    {
+      "name": "lessons-learned",
+      "source": "./",
+      "description": "Record and look up lessons from agent mistakes so they do not repeat.",
+      "category": "productivity"
+    }
+  ]
+}

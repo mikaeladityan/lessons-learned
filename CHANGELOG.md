@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Claude Code plugin marketplace: `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`
+  at the repo root. Install with `/plugin marketplace add mikaeladityan/lessons-learned`, then
+  `/plugin install lessons-learned@lessons-learned`. The READMEs show both lines and the update step.
+- Repo test: the `plugin.json` version equals the `package.json` version.
+
 ## [1.2.2] - 2026-11-05
 
 ### Fixed

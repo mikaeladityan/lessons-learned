@@ -57,6 +57,16 @@ Gangguan sekali lewat, seperti koneksi yang putus sebentar, tidak dijadikan less
 > [!TIP]
 > Pasang untuk agent tertentu dengan `-a claude-code -a codex`. Pasang untuk semua project dengan `-g`.
 
+**Plugin Claude Code.** Anda juga bisa memasangnya dari plugin marketplace di repo ini. Di Claude Code, jalankan:
+
+```text
+/plugin marketplace add mikaeladityan/lessons-learned
+/plugin install lessons-learned@lessons-learned
+```
+
+Di Claude Code 2.1.275 atau lebih baru, satu baris cukup untuk keduanya:
+`/plugin install lessons-learned --marketplace mikaeladityan/lessons-learned`.
+
 ## Kenapa ini berhasil
 
 **Tersimpan di repo, bukan di chat.**
@@ -193,6 +203,7 @@ Lesson sebaiknya ditulis dalam bahasa Inggris supaya semua model bisa membacanya
 | [`references/fold.md`](skills/lessons-learned/references/fold.md) | Cara memindahkan aturan ke file pemiliknya, dengan tabel persetujuan. |
 | [`references/agent-files.md`](skills/lessons-learned/references/agent-files.md) | Agent mana membaca file mana, dan isi persis catatan yang ditulis `init`. |
 | [`scripts/lessons.mjs`](skills/lessons-learned/scripts/lessons.mjs) | CLI-nya. Satu file JavaScript biasa, tanpa dependency. |
+| [`.claude-plugin/`](.claude-plugin) | Manifest plugin Claude Code dan marketplace yang mencantumkannya. |
 
 ## Prinsip desain
 
@@ -282,7 +293,8 @@ yang sama.
 <details>
 <summary><b>Bagaimana cara memperbaruinya?</b></summary>
 
-1. Jalankan `npx skills update`. Ini memperbarui skill di folder skill agent Anda.
+1. Jalankan `npx skills update`. Ini memperbarui skill di folder skill agent Anda. Jika Anda
+   memasang plugin Claude Code, jalankan `/plugin marketplace update lessons-learned` sebagai gantinya.
 2. Saat skill berjalan lagi, `status` mencetak `setup: update`. Agent lalu menjalankan `init`, yang
    memperbarui `docs/lessons/lessons.mjs` dan catatan di `AGENTS.md` / `CLAUDE.md`. Pilihan Anda
    sebelumnya tetap dipakai. Untuk melakukannya sendiri, jalankan salinan skill:

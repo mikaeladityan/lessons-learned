@@ -17,6 +17,17 @@ test("VERSION in lessons.mjs equals the package.json version", () => {
     assert.equal(VERSION, pkg.version);
 });
 
+test("the Claude Code plugin manifest carries the package.json version", () => {
+    // A stale plugin.json version means plugin users never receive the update.
+    const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+    const plugin = JSON.parse(readFileSync(join(ROOT, ".claude-plugin", "plugin.json"), "utf8"));
+    const market = JSON.parse(readFileSync(join(ROOT, ".claude-plugin", "marketplace.json"), "utf8"));
+
+    assert.equal(plugin.version, pkg.version);
+    assert.equal(plugin.name, "lessons-learned");
+    assert.deepEqual(market.plugins.map((p) => [p.name, p.source]), [[plugin.name, "./"]]);
+});
+
 test("eval fixtures carry the current script", () => {
     const fixtures = join(ROOT, "evals", "fixtures");
     const script = readFileSync(SCRIPT, "utf8");
