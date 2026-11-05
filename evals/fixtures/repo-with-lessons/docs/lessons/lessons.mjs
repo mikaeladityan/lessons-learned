@@ -5,7 +5,7 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSy
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const VERSION = "1.2.2";
+export const VERSION = "1.3.0";
 
 export const DEFAULT_AREAS = ["code", "test", "security", "review", "process", "shell", "tooling", "docs"];
 export const SOURCES = ["execution", "verify", "review", "security", "browser", "user"];

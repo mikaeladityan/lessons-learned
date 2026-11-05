@@ -1,0 +1,13 @@
+{
+  "name": "lessons-learned",
+  "version": "1.3.0",
+  "description": "Turns AI agent mistakes into lessons in your repo that every agent reads before it works again.",
+  "author": {
+    "name": "mikaeladityan",
+    "url": "https://github.com/mikaeladityan"
+  },
+  "homepage": "https://github.com/mikaeladityan/lessons-learned",
+  "repository": "https://github.com/mikaeladityan/lessons-learned",
+  "license": "MIT",
+  "keywords": ["lessons-learned", "agent-skills", "post-mortem", "ai-agents"]
+}
